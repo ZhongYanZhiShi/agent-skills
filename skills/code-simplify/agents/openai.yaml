@@ -1,0 +1,4 @@
+interface:
+  display_name: "Code Simplify"
+  short_description: "审查并精简当前代码改动，兼顾复用性、可维护性与运行效率"
+  default_prompt: "使用 $code-simplify 审查并清理我当前的代码改动。"
