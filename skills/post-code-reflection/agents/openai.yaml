@@ -1,0 +1,4 @@
+interface:
+  display_name: "代码后反思"
+  short_description: "AI 代码生成后做审查、对比、手动改写练习与经验沉淀"
+  default_prompt: "使用 $post-code-reflection 将 AI 生成代码转成审查、改写与学习沉淀闭环。"
