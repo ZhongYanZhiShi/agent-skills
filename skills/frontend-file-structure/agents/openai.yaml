@@ -1,0 +1,4 @@
+interface:
+  display_name: "Frontend File Structure"
+  short_description: "Plan and refactor React or Vue project file structure."
+  default_prompt: "Use $frontend-file-structure to inspect the current frontend project structure and propose an actionable file organization plan for React, Vue, or framework-specific conventions."

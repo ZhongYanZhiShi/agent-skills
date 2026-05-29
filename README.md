@@ -24,6 +24,7 @@ skills/
 | --- | --- |
 | `skills/commit-message` | 根据 Git diff 生成简体中文 Conventional Commit 提交信息，并在用户明确要求时执行本地 `git commit`。 |
 | `skills/code-simplify` | 审查、精简并清理代码改动，重点关注复用性、可维护性和运行效率。 |
+| `skills/frontend-file-structure` | 规划、评审或重构 React、Vue、Next.js、Nuxt、Vite 等前端项目的文件结构与目录边界。 |
 | `skills/post-code-reflection` | 将 AI 生成代码后的审查、对比、改写练习和经验沉淀整理成学习闭环。 |
 
 ## 维护约定
