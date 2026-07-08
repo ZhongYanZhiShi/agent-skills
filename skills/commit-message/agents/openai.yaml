@@ -1,4 +1,11 @@
 interface:
-  display_name: "Commit Message"
-  short_description: "生成中文 Conventional Commit 提交信息"
-  default_prompt: "Use $commit-message to generate a concise Chinese Conventional Commit message from the staged Git diff."
+  display_name: "提交信息"
+  short_description: "生成中文 Conventional Commit 并按原子组提交"
+  search_terms:
+    - "commit-message"
+    - "git commit"
+    - "atomic commit"
+    - "Conventional Commit"
+    - "中文提交信息"
+    - "提交说明"
+  default_prompt: "使用 $commit-message 检查 Git 状态、保留无关改动，并按原子组生成或提交简体中文 Conventional Commit。"
