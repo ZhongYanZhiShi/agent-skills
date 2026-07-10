@@ -1,0 +1,4 @@
+interface:
+  display_name: "Audit Project"
+  short_description: "全量审查 Web 与 Node.js 项目并输出证据化改进建议"
+  default_prompt: "使用 $audit-project 对当前项目做一次全量只读审查，并给出覆盖情况与优先级建议。"
