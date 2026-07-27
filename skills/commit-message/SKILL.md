@@ -1,25 +1,25 @@
 ---
 name: commit-message
-description: 用于用户请求“提交”“提交代码”“commit”“git commit”“生成提交信息”“写 commit message”，或需要基于 Git diff 按项目约定语言生成 Conventional Commit 提交说明时触发。
+description: Use when the user asks to commit changes, run git commit, generate a commit message, or write a Conventional Commit from a Git diff in the language established by the project.
 ---
 
 # Commit Message
 
-根据 Git 改动生成符合项目语言习惯的 Conventional Commit，无法判断时使用简体中文。默认只生成提交信息；只有用户明确要求提交时才执行 `git commit`。提交时保留无关脏改动，并按原子意图拆分提交。
+Generate Conventional Commits that follow the project's language conventions, defaulting to Simplified Chinese when the language cannot be determined. Generate a message only by default; run `git commit` only when the user explicitly asks. Preserve unrelated dirty-worktree changes and split commits by atomic intent.
 
-## 模式门
+## Mode Gate
 
-先判断用户意图：
+Determine the user's intent first:
 
-- `MESSAGE`：只生成提交信息，不修改 Git 状态。
-- `COMMIT`：暂存并提交本地改动；可按原子组创建多个提交。
-- `REVERT`：为回滚提交生成或执行 `revert` 提交信息。
+- `MESSAGE`: generate a message without changing Git state.
+- `COMMIT`: stage and commit local changes, optionally as multiple atomic groups.
+- `REVERT`: generate or execute a `revert` commit.
 
-不要 commit、push、force-push、reset、stash-pop、删除文件或跳过钩子，除非用户明确要求对应操作。调查类请求只报告结果并停止。
+Do not commit, push, force-push, reset, pop a stash, delete files, or bypass hooks unless the user explicitly requests the corresponding action. For investigation-only requests, report the result and stop.
 
-## 事实收集
+## Collect Facts
 
-先尽量并行读取事实：
+Read these facts in parallel when possible:
 
 ```bash
 git rev-parse --show-toplevel
@@ -32,76 +32,76 @@ git branch --show-current
 git log -30 --no-merges --pretty=format:'%h%x09%s'
 ```
 
-根据仓库根目录读取从根目录到当前目录适用的 `AGENTS.md`，并检查现有 `CONTRIBUTING*`、`README*`、`.github` 说明和提交配置是否明确规定提交信息语言。不要把项目技术栈或普通文档使用的语言当作提交信息语言约定。
+From the repository root to the current directory, read applicable `AGENTS.md` files. Inspect existing `CONTRIBUTING*`, `README*`, `.github` documentation, and commit configuration for explicit commit-language rules. Do not infer the commit language from the technology stack or the language used in ordinary documentation.
 
-某个查询失败只说明该事实缺失，不得当作证明。分析 diff 时读取完整内容，不只看文件名。
+A failed query means only that the fact is unavailable; it proves nothing. Read the full diff, not only filenames.
 
-## 语言选择
+## Choose the Language
 
-生成提交信息前，按以下优先级选择一种语言：
+Choose one language in this order:
 
-1. 用户在本次调用中明确指定的语言，例如“使用 `$commit-message`，以英语生成提交信息”。
-2. 适用的项目说明或配置明确规定的提交信息语言。
-3. 最近 30 条非合并提交中，去掉 Conventional Commit 前缀、代码标识和 issue 编号后，某种语言占可识别 subject 的一半以上时，使用该语言。
-4. 没有明确规则、历史样本不足或没有语言过半时，使用简体中文。
+1. The user explicitly selects a language in the current request.
+2. Applicable project instructions or configuration explicitly define the commit language.
+3. After removing Conventional Commit prefixes, code identifiers, and issue numbers from the latest 30 non-merge commits, one language accounts for more than half of recognizable subjects.
+4. If no explicit rule exists, history is insufficient, or no language has a majority, use Simplified Chinese.
 
-项目明确约定优先于历史习惯。所选语言用于 subject、body 和 footer 的说明文字；`type`、`scope`、`BREAKING CHANGE:`、`Closes` 等 Conventional Commit 结构保持原格式。
+Explicit project rules override historical convention. Use the chosen language for the explanatory text in the subject, body, and footer; preserve Conventional Commit tokens such as `type`, `scope`, `BREAKING CHANGE:`, and `Closes`.
 
-## MESSAGE 模式
+## MESSAGE Mode
 
-暂存区有内容时，以暂存区为唯一依据；未暂存和未跟踪文件只作为风险提醒，不纳入提交信息。
+When the index contains changes, use staged changes as the only source. Mention unstaged and untracked files only as risks; do not include them in the message.
 
-暂存区为空时：
+When the index is empty:
 
-- 用户只是要求生成提交信息：可基于未暂存 diff 生成；最终输出仍只给提交信息纯文本，不把“基于未暂存改动”等说明混入提交信息。
-- 存在 `??` 未跟踪文件：先读取相关文件内容或确认是否纳入分析。
-- 用户要求提交：进入 `COMMIT` 模式，按用户给出的范围暂存。
+- If the user asks only for a message, it may be based on the unstaged diff. The final output must still contain only the commit message.
+- If `??` untracked files exist, read relevant content or confirm whether it belongs in the analysis.
+- If the user asks to commit, enter `COMMIT` mode and stage only the requested scope.
 
-检查 diff 是否包含多个独立意图。能拆分时，为每个原子组各生成一条候选提交信息，不附加分析、序号或标题；用户明确要求合并时，选择主导意图作为 header，其余必要信息才放入 body。
+Check whether the diff contains independent intents. When it can be split, generate one candidate message per atomic group without analysis, numbering, or headings. If the user explicitly requests one commit, choose the dominant intent for the header and put only necessary secondary details in the body.
 
-生成后自检：type 准确、scope 必要且具体、subject 精简、body/footer 只在需要时出现、没有任何 AI 或工具署名。
+Before returning, verify that the type is accurate, the scope is necessary and specific, the subject is concise, the body and footer appear only when needed, and no AI or tool attribution is present.
 
-## COMMIT 模式
+## COMMIT Mode
 
-只提交用户要求的改动，保留无关脏改动。用户明确说“全部提交”“提交所有改动”等范围清晰时，才可以纳入全部当前改动。
+Commit only changes requested by the user and preserve unrelated dirty-worktree changes. Include all current changes only when the user gives a clear scope such as “commit everything.”
 
-原子分组规则：
+Atomic grouping:
 
-- 按行为、模块和可回滚性分组；不同功能、配置、文档、测试专用改动默认分开。
-- 实现与直接验证该实现的测试放在同一组。
-- 生成文件与产生它的源码改动放在同一组，除非用户明确排除。
-- 不把失败、无关或无法解释的改动藏进宽泛提交。
+- Group by behavior, module, and independent reversibility. Separate unrelated features, configuration, documentation, and test-only changes by default.
+- Keep implementation with tests that directly verify it.
+- Keep generated files with the source changes that produce them unless the user explicitly excludes them.
+- Do not hide failed, unrelated, or unexplained changes in a broad commit.
 
-执行流程：
+Execution:
 
-1. 基于完整 diff 划分原子组；无法安全划分时先向用户确认边界。
-2. 按路径或 hunk 暂存每个原子组，不要顺手暂存无关文件。同一文件包含多个原子意图时，优先用 `git add -p <file>` 按 hunk 暂存；如果单个 hunk 仍混杂多个意图，改用 `git add -e` 或先拆分改动，不要强行混提交。
-3. 每次提交前检查 `git diff --cached --stat` 和足够的 staged diff，确认暂存区只包含当前组；使用 `git add -p` 或 `git add -e` 后，同时检查 `git diff --cached` 和 `git diff`，确认已暂存内容属于当前提交组，未暂存内容属于剩余其他意图。
-4. 按“语言选择”规则为当前组生成 Conventional Commit。
-5. 提交前用 `git diff --cached --quiet` 判断暂存区是否为空；暂存区为空时不要提交，除非用户明确要求 `--allow-empty`。
-6. 单行信息可用 `git commit -m`；多行信息必须写入仓库外临时文件，并用 `git commit -F <文件>`。
-7. 提交后检查 `git log -1 --oneline`。
-8. 最终报告 commit hash、提交信息，以及仍未提交的文件。
+1. Divide the full diff into atomic groups. If the boundary cannot be determined safely, ask the user.
+2. Stage each group by path or hunk without including unrelated files. When one file contains multiple intents, prefer `git add -p <file>`; if a hunk still mixes intents, use `git add -e` or split the edit instead of forcing one commit.
+3. Before every commit, inspect `git diff --cached --stat` and enough of the staged diff to confirm that the index contains only the current group. After `git add -p` or `git add -e`, inspect both `git diff --cached` and `git diff` to verify the split.
+4. Generate a Conventional Commit using the language rules above.
+5. Use `git diff --cached --quiet` to detect an empty index. Do not create an empty commit unless the user explicitly requests `--allow-empty`.
+6. Use `git commit -m` for a single line. For multiline messages, write a temporary file outside the repository and use `git commit -F <file>`.
+7. After committing, inspect `git log -1 --oneline`.
+8. Report the commit hash, message, and any files still uncommitted.
 
-不要使用 `--no-verify`，不要自动推送。临时提交信息文件放在仓库外临时目录，提交后删除。
+Never use `--no-verify` or push automatically. Store temporary commit-message files outside the repository and remove them after the commit.
 
-## REVERT 模式
+## REVERT Mode
 
-回滚提交使用固定格式：
+Use this fixed format:
 
 ```text
-revert: <被回滚的原 subject>
+revert: <original subject>
 
 This reverts commit <hash>.
 ```
 
-如果无法确定被回滚提交的 hash，先向用户确认，不要猜测。执行回滚前确认目标 hash 与用户意图一致。
+If the target hash cannot be determined, ask the user instead of guessing. Confirm that the hash matches the user's intent before reverting.
 
-## 输出规则
+## Output Rules
 
-用户只要求提交信息时，只输出提交信息纯文本，不加代码块，不解释推理过程。存在多个原子组时，仅输出各组候选提交信息并用两个空行分隔。用户要求执行提交时，成功后简要报告提交信息和 commit hash；失败时报告失败原因与下一步。
+When the user asks only for a message, output plain commit-message text with no code fence or reasoning. For multiple atomic groups, output only the candidate messages separated by two blank lines. When the user requests a commit, briefly report the message and hash on success; on failure, report the cause and next step.
 
-提交信息格式：
+Format:
 
 ```text
 <type>(<scope>): <subject>
@@ -111,45 +111,45 @@ This reverts commit <hash>.
 <footer>
 ```
 
-只有 header 必需。没有 body 或 footer 时，连同相邻空行一起省略。
+Only the header is required. Omit unused body or footer sections and their adjacent blank lines.
 
 ## Header
 
-type 必须从下列值中选择：
+Choose a type from this list:
 
-| type | 用途 |
+| type | Purpose |
 | --- | --- |
-| feat | 新增用户可感知功能 |
-| fix | 修复缺陷或错误行为 |
-| refactor | 调整内部结构且不改变外部行为 |
-| perf | 带来明确性能收益 |
-| style | 纯格式、空白、分号、lint 等无语义变化 |
-| docs | 文档变更 |
-| test | 测试新增或调整 |
-| build | 构建系统、依赖管理、打包配置 |
-| ci | CI/CD 配置 |
-| chore | 不影响产品行为的杂务 |
-| revert | 回滚提交 |
+| feat | Add user-visible functionality |
+| fix | Correct a defect or erroneous behavior |
+| refactor | Change internal structure without changing external behavior |
+| perf | Deliver a verified performance improvement |
+| style | Make formatting, whitespace, semicolon, or lint-only changes |
+| docs | Change documentation |
+| test | Add or modify tests |
+| build | Change build systems, dependency management, or packaging |
+| ci | Change CI/CD configuration |
+| chore | Perform maintenance that does not affect product behavior |
+| revert | Revert a commit |
 
-scope 可选。优先使用组件名、页面/模块名、目录名或明确业务域；跨多个无共同边界的模块时省略。不要使用 `misc`、`common`、`update` 这类笼统 scope。
+The scope is optional. Prefer a component, page or module, directory, or specific business domain. Omit it for unrelated cross-module changes with no shared boundary. Do not use vague scopes such as `misc`, `common`, or `update`.
 
-subject 遵循所选语言和项目现有提交的自然表达，使用简洁的动作语气，结尾不加标点。简体中文使用动宾结构和祈使语气，不超过 50 个中文字符，并避免“了”“的”“的问题”“进行”“为了”“来”等冗余词；其他语言保持单行精简表达。
+Write the subject naturally in the selected language using a concise imperative action and no ending punctuation. In Simplified Chinese, use an imperative verb-object phrase no longer than 50 Chinese characters and avoid filler words such as “了”, “的”, “的问题”, “进行”, “为了”, and “来”. Keep other languages concise and on one line.
 
-## Body 与 Footer
+## Body and Footer
 
-默认只写 header。仅当省略 body 会遗漏无法由 subject 表达的关键行为、必要动机、影响或迁移信息时，才生成 body。文件多、diff 大或逻辑复杂本身不构成添加 body 的理由；不确定是否必要时省略。
+Write only the header by default. Add a body only when omitting it would hide essential behavior, motivation, impact, or migration information that the subject cannot express. File count, diff size, and logic complexity alone do not justify a body; omit it when uncertain.
 
-需要 body 时用 `-` 分点，每条都必须补充理解或使用该提交所必需的信息，与 subject 不重复。复杂提交通常使用 3-5 条，但条目数量服从必要性；禁止为凑条目补充内容、按文件罗列改动或逐行翻译 diff，必要信息超过 5 条时应拆分提交。
+When a body is necessary, use `-` bullets. Every bullet must add information required to understand or use the commit and must not repeat the subject. Complex commits often need three to five bullets, but use only as many as necessary. Do not pad the list, enumerate files, or translate the diff line by line. Split the commit when essential information exceeds five bullets.
 
-每个 bullet 必须独占一行，使用真实换行符分隔，禁止把多条 bullet 拼接在同一行内，也禁止输出 `\n`、`\\n` 这类转义字面量代替换行。生成多行提交信息时务必通过 `git commit -F <文件>` 写入，不要用 `git commit -m` 拼接含转义符的字符串。
+Put each bullet on its own line with real newline characters. Never join bullets on one line or output literal `\n` or `\\n` escapes in place of newlines. Commit multiline messages with `git commit -F <file>`, not `git commit -m` with escaped strings.
 
-存在明确不兼容变更时，footer 使用 `BREAKING CHANGE:` 开头，并写清影响与迁移方式。只有用户、分支名、diff 或上下文明确提供 issue 编号时，才添加 `Closes #<ID>`。
+For an explicit incompatible change, start the footer with `BREAKING CHANGE:` and explain the impact and migration. Add `Closes #<ID>` only when the user, branch name, diff, or context explicitly supplies an issue number.
 
-## 禁止内容
+## Forbidden Content
 
-提交信息不得包含任何 AI 智能体、工具或平台署名，包括 `Co-Authored-By`、`Co-authored-by`、`Signed-off-by`、`Generated by`、`Powered by`、`Assisted by`、AI 工具链接、bot 链接、`AI-generated` 或 emoji 水印。除非用户明确要求，不要添加任何 trailer。
+Never include AI-agent, tool, or platform attribution, including `Co-Authored-By`, `Co-authored-by`, `Signed-off-by`, `Generated by`, `Powered by`, `Assisted by`, AI or bot links, `AI-generated`, or emoji watermarks. Do not add trailers unless the user explicitly requests them.
 
-## 示例
+## Examples
 
 ```text
 style(Button): 调整边框颜色
@@ -159,7 +159,7 @@ style(Button): 调整边框颜色
 docs: 更新部署文档
 ```
 
-项目约定或提交历史以英语为主时：
+When project rules or commit history primarily use English:
 
 ```text
 docs: update deployment guide

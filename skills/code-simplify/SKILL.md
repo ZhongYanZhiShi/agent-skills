@@ -1,63 +1,62 @@
 ---
 name: code-simplify
 description: >
-  审查、精简并清理代码改动，重点关注复用性、可维护性和运行效率。适用于实现、重构、
-  修复缺陷或功能开发后的提交前质量检查。触发词包括“简化代码”“清理代码”“优化代码”
-  “审查改动”“检查 diff”“代码评审”，以及 "simplify"、"cleanup"、"clean up"、
-  "optimize my code"、"review my changes"、"review the diff"、"code review"、
-  "check code quality"、"audit changes"。如果用户只要求审查，先报告发现，不直接编辑；
-  只有用户明确要求修复、清理或优化时才修改文件。
+  Review, simplify, and clean up code changes with emphasis on reuse, maintainability, and runtime efficiency.
+  Use after implementation, refactoring, bug fixes, or feature work for pre-commit quality checks. Triggers include
+  "simplify code", "cleanup", "clean up", "optimize my code", "review my changes", "review the diff",
+  "code review", "check code quality", and "audit changes". If the user asks only for a review, report findings
+  without editing. Modify files only when the user explicitly asks to fix, clean up, simplify, or optimize.
 ---
 
 # Code Simplify
 
-用于审查并精简已有代码改动，重点检查复用性、可维护性和效率。先判定用户要的是纯审查还是直接清理；只有在用户明确要求 cleanup、simplify、optimize、fix，或上下文表明正在做提交前整理时，才直接编辑文件。
+Review and simplify existing code changes with emphasis on reuse, maintainability, and efficiency. First decide whether the user wants review only or direct cleanup. Edit files only when the user explicitly requests cleanup, simplification, optimization, or a fix, or when the context clearly indicates pre-commit cleanup.
 
-## 1. 判定模式与范围
+## 1. Determine Mode and Scope
 
-先读取当前上下文和用户措辞：
+Read the current context and the user's wording:
 
-- 审查模式：用户只说 review、code review、audit、check diff、检查质量时，先输出问题，不直接修改。
-- 清理模式：用户说 cleanup、clean up、simplify、optimize、fix、整理改动、提交前清理，或刚完成实现并要求收尾时，审查后直接做最小必要修改。
+- Review mode: when the user asks to review, audit, check a diff, or assess quality, report findings first and do not edit.
+- Cleanup mode: when the user asks to clean up, simplify, optimize, fix, prepare changes for commit, or finish an implementation, review and then apply only the minimum necessary changes.
 
-收集改动范围时先运行 `git status --short`。对已跟踪文件读取 `git diff` 和 `git diff --cached`；如果需要覆盖全部已跟踪改动，可用 `git diff HEAD`。对 untracked 文件，使用 `git ls-files --others --exclude-standard` 找到候选文件，再按用户范围或最近编辑上下文读取文件内容。若用户提供了路径、补丁或具体 diff，以用户给定范围为准。
+Start scope collection with `git status --short`. Read `git diff` and `git diff --cached` for tracked files; use `git diff HEAD` when all tracked changes must be covered. For untracked files, use `git ls-files --others --exclude-standard`, then read only candidates within the user's scope or recent editing context. If the user supplies a path, patch, or diff, use that scope.
 
-不要把无关的脏工作区改动纳入修复范围。若没有 diff、没有 untracked 候选，也没有最近编辑文件，说明没有可审查内容并停止。
+Do not include unrelated dirty-worktree changes in a fix. If there is no diff, no relevant untracked file, and no recently edited file, say there is nothing to review and stop.
 
-## 2. 三个审查维度
+## 2. Review Three Dimensions
 
-三类检查相互独立。若当前环境和用户授权允许使用子代理，可以并行分派；否则单代理按任意顺序检查。不要为了此技能突破当前宿主环境的子代理使用规则。
+The dimensions are independent. If the environment and authorization allow subagents, they may be delegated in parallel; otherwise review them sequentially. Never bypass host restrictions on subagent use.
 
-### 复用性
+### Reuse
 
-查找新增或修改代码是否重复了代码库已有能力。优先搜索相邻文件、`utils`、`lib`、`shared`、组件库、服务层、类型定义和既有测试。重点关注手写字符串处理、路径处理、环境判断、类型保护、格式化函数、请求封装、错误处理、权限判断、查询构造和组件变体逻辑。
+Check whether new or modified code duplicates existing codebase capabilities. Search nearby files, `utils`, `lib`, `shared`, component libraries, service layers, type definitions, and existing tests first. Pay particular attention to handwritten string or path handling, environment checks, type guards, formatters, request wrappers, error handling, permission checks, query builders, and component variant logic.
 
-如果发现重复，记录已有实现的位置、当前重复点和替换方式。只有当现有实现语义匹配且迁移成本低时才建议或应用替换。
+When duplication exists, record the existing implementation, the duplicate, and the replacement. Recommend or apply reuse only when semantics match and migration cost is low.
 
-### 质量
+### Quality
 
-检查会增加维护成本的模式：派生状态被存进 state、`useState` 加 `useEffect` 只为计算值、参数膨胀、轻微变体的复制粘贴、泄漏抽象边界、裸字符串替代已有常量或联合类型、无意义 JSX 包裹层、过度耦合的组件或函数，以及为了通过当前测试而写的一次性逻辑。
+Look for maintenance-heavy patterns: derived values stored in state; `useState` plus `useEffect` used only to compute a value; parameter bloat; copied variants; leaking abstraction boundaries; raw strings instead of existing constants or unions; pointless JSX wrappers; over-coupled components or functions; and one-off logic written only to satisfy the current tests.
 
-React 中若 effect 只是根据依赖计算值并调用 setter，优先改为内联计算或 `useMemo`。只有计算昂贵、引用稳定性有意义，或依赖下游 memoization 时才使用 `useMemo`。
+In React, when an effect only derives a value from dependencies and calls a setter, prefer inline computation or `useMemo`. Use `useMemo` only when computation is expensive, reference stability matters, or downstream memoization depends on it.
 
-### 效率
+### Efficiency
 
-检查重复计算、重复文件读取、重复网络请求、N+1 查询、可并行却串行的独立 I/O、启动或请求热路径中的阻塞工作、轮询或事件回调里的无条件 state/store 更新、每次渲染都重建的静态对象或数组、未清理的监听器和定时器、无界缓存，以及先检查存在再操作资源的 TOCTOU 模式。
+Check repeated computation, file reads or network calls; N+1 queries; independent I/O serialized unnecessarily; blocking work in startup or request hot paths; unconditional state/store updates in polling or event callbacks; static objects or arrays rebuilt every render; leaked listeners and timers; unbounded caches; and check-then-act TOCTOU patterns.
 
-对定时、轮询、订阅和外部事件触发的更新，确认没有变化时能复用旧引用或跳过 dispatch。对包装 updater 或 reducer 的工具，确认调用方返回同一引用时不会被强行包装成新对象。
+For timers, polling, subscriptions, and external events, verify that unchanged data can reuse the previous reference or skip dispatch. For utilities wrapping updaters or reducers, verify that returning the same reference is not forced into a new object.
 
-## 3. 处理发现
+## 3. Handle Findings
 
-先汇总三个维度的发现并去重，再按模式处理。
+Combine and deduplicate findings from all three dimensions before acting.
 
-审查模式下，按严重度列出问题，包含文件、行号、原因和建议修复；不修改文件。
+In review mode, list issues by severity with file, line, reason, and recommended fix. Do not edit files.
 
-清理模式下，直接应用低风险、范围明确的修复。保持改动最小，不做无关重构，不删除文件，不回滚用户已有改动。若某条发现是假阳性、修复成本高于收益，或会让代码更难读，跳过并在结果中说明。
+In cleanup mode, apply low-risk, clearly scoped fixes directly. Keep the diff minimal, avoid unrelated refactoring, and never delete files or revert the user's changes. Skip false positives, fixes whose cost exceeds their benefit, and changes that reduce readability; mention skipped items in the result.
 
-## 4. 验证
+## 4. Verify
 
-修改后运行当前项目可用的验证命令。优先使用宿主环境提供的诊断工具；若没有，按项目惯例运行相关的 lint、typecheck、test 或构建命令。无法确定命令时，检查 `package.json`、`Makefile`、语言配置或 README 中的脚本。若验证命令不存在、依赖缺失或受沙箱限制无法运行，明确说明未验证的原因。
+After edits, run the project's available verification commands. Prefer diagnostics provided by the host; otherwise follow project conventions for lint, typecheck, tests, or builds. If the command is unclear, inspect scripts in `package.json`, `Makefile`, language configuration, or README. State why validation could not run when commands are absent, dependencies are missing, or the sandbox blocks execution.
 
-## 输出
+## Output
 
-审查模式输出问题清单优先，随后给出简短总结和剩余风险。清理模式输出改了什么、跳过了什么以及验证结果。若代码已经足够干净，直接说明未发现值得修改的问题。
+In review mode, lead with findings, followed by a short summary and remaining risks. In cleanup mode, state what changed, what was skipped, and the validation result. If the code is already clean enough, say that no worthwhile changes were found.

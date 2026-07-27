@@ -1,30 +1,30 @@
 ---
 name: post-code-reflection
-description: AI 生成代码、完成模块实现或用户要求“代码后反思”“AI 写完代码后怎么学习”“解释为什么这么写”“自审/复盘/找 bug/比较更优解/总结经验”时使用。用于把一次 AI coding 任务转成学习闭环：先还原设计意图，再审查质量、暴露边界问题、对比替代方案、安排人工改写，并沉淀可复用经验。
+description: Use after AI-generated code or module implementation, or when the user asks to reflect on generated code, explain design choices, self-review, find bugs, compare alternatives, or extract lessons. Turns an AI coding task into a learning loop by reconstructing intent, reviewing quality and edge cases, comparing alternatives, assigning a manual rewrite, and capturing reusable lessons.
 ---
 
-# 代码后反思
+# Post-Code Reflection
 
-## 核心目标
+## Core Goal
 
-把“AI 写完代码就接受”改成“设计、审查、改写、沉淀”的学习闭环。重点不是让 AI 自夸，而是帮助用户保持架构判断、代码阅读和手写改动能力。
+Replace “accept AI-generated code immediately” with a learning loop of design, review, rewriting, and retention. The goal is not to praise the AI, but to help the user preserve architectural judgment, code-reading skill, and the ability to make changes by hand.
 
-## 工作流
+## Workflow
 
-先判断当前处境。若用户还没有生成代码，引导其先写 5 行以内的最小设计：要实现什么、输入是什么、输出是什么、核心流程、可能的边界情况。若代码已经生成或已经有 diff，先读取实际代码或 `git diff`，不要基于未读代码猜测。
+First determine the current situation. If no code has been generated yet, ask the user to write a minimal design in no more than five lines: the goal, inputs, outputs, core flow, and likely edge cases. If code or a diff already exists, read the actual code or `git diff` before drawing conclusions.
 
-执行反思时按这个顺序推进：
+Proceed in this order:
 
-1. 还原设计意图：说明这段代码解决什么问题、数据如何流动、关键模块边界在哪里、实现中隐含了哪些假设。
-2. 暴露问题：检查可能的 bug、边界情况、异常路径、可维护性风险、性能或 I/O 成本，以及未来扩展会痛苦的位置。
-3. 对比方案：给出更简单、更稳妥或更可维护的替代方案，并说明为什么当前方案是否值得保留。
-4. 安排改写：选择一个小而真实的改动让用户或 Codex 手动完成，例如改命名、拆函数、补边界判断、补测试、删除冗余逻辑。只有在用户明确要求修改文件时才直接编辑。
-5. 沉淀经验：总结本次可复用的开发经验，包括适用场景、关键原则、常见坑、下次遇到类似问题怎么做。
+1. Reconstruct design intent: explain the problem being solved, data flow, important module boundaries, and implicit assumptions.
+2. Expose problems: check likely bugs, edge cases, failure paths, maintainability risks, performance or I/O cost, and areas that will be painful to extend.
+3. Compare alternatives: offer a simpler, safer, or more maintainable option and explain whether the current approach is worth keeping.
+4. Assign a rewrite: choose one small, real change for the user or Codex to complete manually, such as renaming, extracting a function, adding an edge-case guard or test, or deleting redundant logic. Edit files only when the user explicitly asks.
+5. Capture lessons: summarize reusable lessons, including applicable scenarios, key principles, common pitfalls, and what to do next time.
 
-## 输出要求
+## Output
 
-输出要短而有用。优先给出具体代码位置、具体风险和具体改写建议。避免泛泛评价“代码结构清晰”这类不可验证结论。
+Keep the response concise and useful. Prefer concrete code locations, risks, and rewrite suggestions over generic praise such as “the code is well structured.”
 
-如果用户的目标是学习，结尾给一个小练习或反问，例如“如果不用 AI，你会先拆哪两个函数？”如果用户的目标是交付，结尾给验证建议，例如应运行哪些测试、类型检查或关键手工路径。
+If the user's goal is learning, end with a small exercise or question, such as “Which two functions would you extract first without AI?” If the goal is delivery, end with relevant tests, type checks, or manual paths to verify.
 
-当需要可复制提示词时，读取 `references/prompt-templates.md`，选取最贴合当前场景的模板，不要一次性倾倒全部模板。
+When reusable prompts are needed, read `references/prompt-templates.md`, select the closest template, and do not dump every template at once.

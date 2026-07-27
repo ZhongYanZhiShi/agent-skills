@@ -1,6 +1,6 @@
 # Agent Skills
 
-这个仓库用于维护可复用的 Agent 技能。每个技能放在 `skills/<skill-name>/` 目录下，`SKILL.md` 是必需的运行时说明；其他资源只在确有需要时添加，避免重复文档和维护负担。
+这个仓库用于维护可复用的 Agent 技能。每个技能放在 `skills/<skill-name>/` 目录下，英文版 `SKILL.md` 是必需的运行时说明；面向用户阅读的简体中文版使用 `SKILL.zh-Hans.md`。其他资源只在确有需要时添加，避免重复文档和维护负担。
 
 ## 目录结构
 
@@ -8,13 +8,14 @@
 skills/
   <skill-name>/
     SKILL.md
+    SKILL.zh-Hans.md
     agents/
       openai.yaml
     references/
       ...
 ```
 
-`SKILL.md` 是技能运行时读取的主文件，描述触发条件、约束和执行流程。`agents/openai.yaml` 提供界面展示名称、简短说明和默认提示词，推荐与 `SKILL.md` 同步维护。`references/` 用于存放按需读取的长参考资料、模板或示例，避免把运行时不一定需要的内容塞进 `SKILL.md`。
+`SKILL.md` 是技能运行时读取的英文主文件，描述触发条件、约束和执行流程。`SKILL.zh-Hans.md` 是供用户查看的简体中文对照版，不参与技能发现。`zh-Hans` 遵循 BCP 47，明确表示简体中文；若以后增加繁体中文版，使用 `SKILL.zh-Hant.md`。`agents/openai.yaml` 提供界面展示名称、简短说明和默认提示词，推荐与两个版本同步维护。`references/` 用于存放按需读取的长参考资料、模板或示例，避免把运行时不一定需要的内容塞进 `SKILL.md`。
 
 技能目录下默认不需要 `README.md`。只有存在面向维护者、且不适合被运行时加载的补充说明时，才单独添加 README。
 
@@ -30,7 +31,7 @@ skills/
 
 ## 维护约定
 
-新增或修改技能时，先保证 `SKILL.md` frontmatter 中的 `name` 和 `description` 能准确覆盖触发场景，再维护正文流程。`description` 只描述何时使用该技能，不复述完整工作流，避免模型只看描述就跳过正文。
+新增或修改技能时，先保证 `SKILL.md` frontmatter 中的 `name` 和 `description` 能准确覆盖触发场景，再维护正文流程，并同步更新 `SKILL.zh-Hans.md`。`description` 只描述何时使用该技能，不复述完整工作流，避免模型只看描述就跳过正文。
 
 `SKILL.md` 应保持精简，优先写核心判断、约束和执行步骤。长模板、详细示例、领域资料等内容放入 `references/`，并在 `SKILL.md` 中说明何时读取。
 

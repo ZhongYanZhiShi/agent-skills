@@ -5,42 +5,42 @@ description: Use when Codex needs to plan, review, or refactor frontend project 
 
 # Frontend File Structure
 
-## 总览
+## Overview
 
-使用这个技能为 React、Vue 及其上层框架项目建立清晰、可渐进迁移的文件结构。优先根据现有代码、框架约束和团队习惯做最小改动，而不是强行套用完整模板。
+Use this skill to create a clear, incrementally adoptable file structure for React, Vue, and their frameworks. Prefer minimal changes based on the existing code, framework constraints, and team conventions instead of imposing a complete template.
 
-## 工作流
+## Workflow
 
-先读取项目事实，再提出结构建议。至少检查 `package.json`、`src`、`app` 或 `pages` 目录、TypeScript 或构建配置、路由目录、状态管理目录、已有导入别名、测试目录和主要组件组织方式。
+Read project facts before recommending a structure. At minimum, inspect `package.json`; `src`, `app`, or `pages`; TypeScript or build configuration; routing and state-management directories; existing import aliases; tests; and the main component organization.
 
-先判断项目类型和框架约束。React 项目通常可从 `react`、`next`、`remix`、`react-router`、`.tsx`、`app` 或 `pages` 识别。Vue 项目通常可从 `vue`、`nuxt`、`@vitejs/plugin-vue`、`.vue`、`composables`、`views` 或 `pages` 识别。不要只凭单个文件名下结论；依赖、目录和入口文件要交叉验证。
+Identify the project type and framework constraints. React projects can often be recognized through `react`, `next`, `remix`, `react-router`, `.tsx`, `app`, or `pages`. Vue projects can often be recognized through `vue`, `nuxt`, `@vitejs/plugin-vue`, `.vue`, `composables`, `views`, or `pages`. Do not conclude from one filename; cross-check dependencies, directories, and entry points.
 
-判断项目当前主要采用哪种组织方式：按文件类型分组、按领域或功能分组、框架约束分组，还是混合结构。保留已经一致且可维护的局部约定，只整理造成查找困难、重复导入、跨层引用混乱、组件目录膨胀或框架约定被绕开的部分。
+Determine whether the project primarily groups by file type, domain or feature, framework convention, or a hybrid. Preserve local conventions that are already consistent and maintainable. Reorganize only where navigation is difficult, imports are duplicated, layer boundaries are confused, component directories have become bloated, or framework conventions are being bypassed.
 
-给出迁移方案时，先移动低风险、边界清楚的文件，再处理共享模块和别名。每一步都说明需要更新哪些导入路径、哪些测试或构建命令可以验证结果，以及如何回滚。
+For migration plans, move low-risk files with clear boundaries first, then address shared modules and aliases. For every step, identify imports to update, tests or builds that verify the change, and a rollback path.
 
-## 推荐结构
+## Recommended Structure
 
-默认尊重项目已有应用根目录。普通 Vite、React Router 或 Vue Router 项目通常使用 `src`；Next.js App Router 可能使用根目录或 `src/app`；Nuxt 通常使用框架约定的根目录。按职责建立少量顶层目录，只创建真实需要的目录。
+Respect the project's current application root. Typical Vite, React Router, and Vue Router projects use `src`; Next.js App Router may use root-level `app` or `src/app`; Nuxt normally uses its framework-defined root. Create only the few top-level directories that current responsibilities require.
 
 ```text
 src/
   components/
-  hooks/ 或 composables/
+  hooks/ or composables/
   helpers/
   utils/
   stores/
   constants.ts
-  pages/ 或 views/ 或 routes/ 或框架约定目录
+  pages/ or views/ or routes/ or framework-defined directories
 ```
 
-将跨页面复用的通用 UI 放到 `components`。React 中跨多个功能复用的 Hook 放到 `hooks`；Vue 中跨多个功能复用的组合式函数放到 `composables`。将项目业务相关的纯函数放到 `helpers`。将跨项目也成立的通用函数放到 `utils`。将 Pinia、Redux、Zustand 等跨页面状态放到项目已有或约定的 `stores`、`store` 或 `state` 目录。将小型全局常量集中到 `constants.ts`；如果常量只服务于一个组件、页面或领域，优先就近放置。
+Put general UI reused across pages in `components`. Put React hooks shared by multiple features in `hooks`, and Vue composables shared by multiple features in `composables`. Put project-specific pure business functions in `helpers`; put truly project-independent utilities in `utils`. Keep cross-page Pinia, Redux, or Zustand state in the project's existing `stores`, `store`, or `state` directory. Small global constants may live in `constants.ts`; constants used by only one component, page, or domain should stay colocated.
 
-不要提前创建空目录。只有当项目中已经出现对应职责的文件，或迁移步骤马上需要它时，才创建目录。
+Do not create empty directories in advance. Create a directory only when matching files already exist or an immediate migration step needs it.
 
-## React 组件目录
+## React Component Directories
 
-简单组件可以保留为单文件。复杂组件使用同名目录，并让目录名、主组件文件名和默认导入语义保持一致：
+Simple components may remain single files. For complex components, use a same-named directory and align the directory name, main component filename, and default import semantics:
 
 ```text
 components/
@@ -52,20 +52,20 @@ components/
     use-file-viewer.ts
 ```
 
-`index.ts` 只暴露组件的公共 API。常见形式是：
+Use `index.ts` only to expose the component's public API. A common form is:
 
 ```ts
 export { default } from './FileViewer';
 export * from './FileViewer';
 ```
 
-如果主文件没有默认导出，不要在 `index.ts` 伪造默认导出。先检查项目偏好：有些代码库统一使用命名导出，有些组件库偏好默认导出。保持一致比套用单一规则更重要。
+Do not invent a default export in `index.ts` when the main file has none. Check project preference first: some codebases consistently use named exports, while some component libraries prefer defaults. Consistency matters more than one universal rule.
 
-私有子组件、组件专属 hook、helper、类型和常量放在组件目录内。不要从组件目录外部导入这些私有文件；外部调用者只应经过该目录的公共入口。
+Keep private subcomponents, component-specific hooks, helpers, types, and constants inside the component directory. External callers should import only through the directory's public entry point.
 
-## Vue 组件目录
+## Vue Component Directories
 
-简单 Vue 组件可以保留为单个 `.vue` 文件。复杂组件使用同名目录，并让目录名、主组件文件名和外部导入语义保持一致：
+Simple Vue components may remain single `.vue` files. For complex components, use a same-named directory and align the directory name, main component filename, and external import semantics:
 
 ```text
 components/
@@ -77,45 +77,45 @@ components/
     use-file-viewer.ts
 ```
 
-如果项目已使用 `script setup` 和自动导入组件，不要为了统一形式强行增加 `index.ts`。只有当组件目录需要稳定公共入口，或项目明确通过目录入口导入组件时，才使用 `index.ts`。
+If the project already uses `script setup` and component auto-imports, do not add `index.ts` merely for uniformity. Use it only when the directory needs a stable public entry point or the project imports components through directory entries.
 
-Vue 的组合式函数按项目约定放在组件目录内或 `composables`。只服务于一个组件的组合式函数留在组件目录内；被多个页面、组件或领域复用时再提升。Pinia store 通常放在 `stores`，但 Nuxt 项目要优先尊重 Nuxt 自动导入和目录约定。
+Place Vue composables inside the component directory or `composables` according to project convention. Keep a composable used by one component local; promote it only after multiple pages, components, or domains reuse it. Pinia stores usually belong in `stores`, but Nuxt auto-import and directory conventions take priority.
 
-## 就近放置与提升
+## Colocation and Promotion
 
-先就近放置，再按真实复用提升。只被一个组件使用的逻辑留在组件目录内。被同一领域多个组件使用时，可以提升到该领域目录。被多个领域或页面使用时，再提升到顶层 `hooks`、`composables`、`helpers`、`utils`、`stores` 或 `components`。
+Colocate first and promote only after real reuse appears. Logic used by one component stays in its directory. Logic shared by several components in one domain may move to the domain directory. Promote to top-level `hooks`, `composables`, `helpers`, `utils`, `stores`, or `components` only when multiple domains or pages share it.
 
-提升前检查引用方向。底层通用模块不应依赖页面、路由或具体业务容器。若提升会引入循环依赖或让命名变得抽象，保持就近放置。
+Check dependency direction before promotion. Low-level shared modules must not depend on pages, routes, or concrete business containers. Keep code colocated if promotion would introduce a cycle or require vague naming.
 
-## 导入与别名
+## Imports and Aliases
 
-优先使用项目已经配置的导入风格。若相对路径频繁出现 `../../..`，建议配置或使用现有路径别名，例如 `@/components/Button`、`@/helpers/category.helpers`。
+Prefer the project's configured import style. When relative imports repeatedly contain `../../..`, recommend an existing or new path alias such as `@/components/Button` or `@/helpers/category.helpers`.
 
-同时更新 TypeScript、bundler、test runner 和 lint 配置中的别名解析。不要只改 `tsconfig.json`，否则测试或运行时可能仍然失败。
+Update alias resolution in TypeScript, the bundler, test runner, and lint configuration together. Updating only `tsconfig.json` may leave tests or runtime resolution broken.
 
-谨慎使用宽泛 barrel 文件。目录级 `index.ts` 适合隐藏组件内部结构；全局聚合导出只在公共 API 边界明确时使用。避免让一个顶层 `index.ts` 导出整个应用，因为这会模糊依赖边界并增加循环依赖风险。
+Use broad barrel files carefully. Directory-level `index.ts` files are useful for hiding component internals; global aggregate exports are appropriate only at a clear public API boundary. Avoid a top-level `index.ts` that exports the entire application because it obscures dependencies and increases cycle risk.
 
-Vue 项目如果依赖 Nuxt、unplugin-auto-import 或 unplugin-vue-components 的自动导入，迁移时要同步检查自动导入配置和生成的类型文件。不要在不需要的地方新增手写导入，也不要让自动导入和手写 barrel 同时暴露同一批 API。
+For Vue projects using Nuxt, `unplugin-auto-import`, or `unplugin-vue-components`, inspect auto-import configuration and generated type files during migration. Do not add unnecessary manual imports or expose the same APIs through both auto-imports and handwritten barrels.
 
-## 框架注意事项
+## Framework Considerations
 
-React Router、Vue Router、Vite、Next.js、Nuxt、Remix 等框架都有自己的入口和路由约束。框架要求的文件名、默认导出、server/client 边界、自动导入和特殊目录优先于本技能的通用建议。
+React Router, Vue Router, Vite, Next.js, Nuxt, Remix, and similar frameworks define their own entry-point and routing constraints. Required filenames, default exports, server/client boundaries, auto-imports, and special directories take priority over this skill's general guidance.
 
-在 Next.js App Router 中，`app` 目录下的 `page.tsx`、`layout.tsx`、`loading.tsx`、`error.tsx` 等文件按框架约定保留。可在路由段内就近放置 `_components`、`components` 或私有模块，但不要破坏服务端组件与客户端组件边界。
+In Next.js App Router, preserve conventional files such as `page.tsx`, `layout.tsx`, `loading.tsx`, and `error.tsx` under `app`. Route segments may contain colocated `_components`, `components`, or private modules, but must preserve server and client component boundaries.
 
-在 Nuxt 中，`pages`、`layouts`、`components`、`composables`、`plugins`、`middleware`、`server` 和 `stores` 等目录有自动注册或运行时语义。不要将这些目录改成普通分层目录，也不要把只应运行在服务端的代码提升到客户端可导入的位置。
+In Nuxt, directories such as `pages`, `layouts`, `components`, `composables`, `plugins`, `middleware`, `server`, and `stores` have auto-registration or runtime semantics. Do not turn them into generic layer directories or promote server-only code into a client-importable location.
 
-在普通 Vite React 或 Vite Vue 项目中，`src/main.tsx`、`src/main.ts`、`src/App.tsx`、`src/App.vue` 和路由入口应保持清晰。若项目使用 `views` 表示路由页面，不要强行改成 `pages`；若项目已经稳定使用 `pages`，也不要仅因 Vue Router 示例常见 `views` 而迁移。
+In standard Vite React or Vite Vue projects, keep `src/main.tsx`, `src/main.ts`, `src/App.tsx`, `src/App.vue`, and routing entry points clear. Do not rename stable `views` conventions to `pages`, or vice versa, merely because examples for another project use the other name.
 
-## 输出要求
+## Output
 
-给用户建议时，用简洁的中文说明以下内容：
+Explain the following concisely in the user's language:
 
-1. 当前观察：列出已读取的结构事实和主要痛点。
-2. 框架判断：说明项目是 React、Vue 或混合项目，并列出判断依据。
-3. 推荐结构：展示目标目录形态，只包含实际需要的目录。
-4. 迁移步骤：按低风险到高风险排序，说明导入更新范围。
-5. 验证命令：给出类型检查、测试、构建或 lint 命令。
-6. 风险与回滚：说明可能破坏的别名、循环依赖、默认导出、自动导入和框架约束，以及如何回退。
+1. Current observations: structural facts read and the main pain points.
+2. Framework assessment: React, Vue, or hybrid, with supporting evidence.
+3. Recommended structure: the target tree containing only directories that are actually needed.
+4. Migration steps: ordered from low to high risk, including affected imports.
+5. Verification commands: typecheck, tests, build, or lint.
+6. Risks and rollback: aliases, cycles, default exports, auto-imports, and framework constraints that could break, plus how to revert.
 
-如果用户只要求评审或建议，不要修改文件。只有用户明确要求实现、重构或迁移时，才执行文件编辑。
+If the user asks only for review or recommendations, do not edit files. Edit files only when the user explicitly requests implementation, refactoring, or migration.
