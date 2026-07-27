@@ -1,11 +1,11 @@
 ---
 name: commit-message
-description: 用于用户请求“提交”“提交代码”“commit”“git commit”“生成提交信息”“写 commit message”，或需要基于 Git diff 生成简体中文 Conventional Commit 提交说明时触发。
+description: 用于用户请求“提交”“提交代码”“commit”“git commit”“生成提交信息”“写 commit message”，或需要基于 Git diff 按项目约定语言生成 Conventional Commit 提交说明时触发。
 ---
 
 # Commit Message
 
-根据 Git 改动生成简体中文 Conventional Commit。默认只生成提交信息；只有用户明确要求提交时才执行 `git commit`。提交时保留无关脏改动，并按原子意图拆分提交。
+根据 Git 改动生成符合项目语言习惯的 Conventional Commit，无法判断时使用简体中文。默认只生成提交信息；只有用户明确要求提交时才执行 `git commit`。提交时保留无关脏改动，并按原子意图拆分提交。
 
 ## 模式门
 
@@ -22,17 +22,30 @@ description: 用于用户请求“提交”“提交代码”“commit”“git 
 先尽量并行读取事实：
 
 ```bash
+git rev-parse --show-toplevel
 git status --short
 git diff --cached --stat
 git diff --cached
 git diff --stat
 git diff
 git branch --show-current
-git log -30 --oneline
-git log -30 --pretty=format:%s
+git log -30 --no-merges --pretty=format:'%h%x09%s'
 ```
 
+根据仓库根目录读取从根目录到当前目录适用的 `AGENTS.md`，并检查现有 `CONTRIBUTING*`、`README*`、`.github` 说明和提交配置是否明确规定提交信息语言。不要把项目技术栈或普通文档使用的语言当作提交信息语言约定。
+
 某个查询失败只说明该事实缺失，不得当作证明。分析 diff 时读取完整内容，不只看文件名。
+
+## 语言选择
+
+生成提交信息前，按以下优先级选择一种语言：
+
+1. 用户在本次调用中明确指定的语言，例如“使用 `$commit-message`，以英语生成提交信息”。
+2. 适用的项目说明或配置明确规定的提交信息语言。
+3. 最近 30 条非合并提交中，去掉 Conventional Commit 前缀、代码标识和 issue 编号后，某种语言占可识别 subject 的一半以上时，使用该语言。
+4. 没有明确规则、历史样本不足或没有语言过半时，使用简体中文。
+
+项目明确约定优先于历史习惯。所选语言用于 subject、body 和 footer 的说明文字；`type`、`scope`、`BREAKING CHANGE:`、`Closes` 等 Conventional Commit 结构保持原格式。
 
 ## MESSAGE 模式
 
@@ -44,7 +57,7 @@ git log -30 --pretty=format:%s
 - 存在 `??` 未跟踪文件：先读取相关文件内容或确认是否纳入分析。
 - 用户要求提交：进入 `COMMIT` 模式，按用户给出的范围暂存。
 
-检查 diff 是否包含多个独立意图。能拆分时，在只生成提交信息的场景中先建议拆分并列出候选边界；用户要求合并时，选择主导意图作为 header，其余必要信息放入 body。
+检查 diff 是否包含多个独立意图。能拆分时，为每个原子组各生成一条候选提交信息，不附加分析、序号或标题；用户明确要求合并时，选择主导意图作为 header，其余必要信息才放入 body。
 
 生成后自检：type 准确、scope 必要且具体、subject 精简、body/footer 只在需要时出现、没有任何 AI 或工具署名。
 
@@ -64,7 +77,7 @@ git log -30 --pretty=format:%s
 1. 基于完整 diff 划分原子组；无法安全划分时先向用户确认边界。
 2. 按路径或 hunk 暂存每个原子组，不要顺手暂存无关文件。同一文件包含多个原子意图时，优先用 `git add -p <file>` 按 hunk 暂存；如果单个 hunk 仍混杂多个意图，改用 `git add -e` 或先拆分改动，不要强行混提交。
 3. 每次提交前检查 `git diff --cached --stat` 和足够的 staged diff，确认暂存区只包含当前组；使用 `git add -p` 或 `git add -e` 后，同时检查 `git diff --cached` 和 `git diff`，确认已暂存内容属于当前提交组，未暂存内容属于剩余其他意图。
-4. 为当前组生成简体中文 Conventional Commit。
+4. 按“语言选择”规则为当前组生成 Conventional Commit。
 5. 提交前用 `git diff --cached --quiet` 判断暂存区是否为空；暂存区为空时不要提交，除非用户明确要求 `--allow-empty`。
 6. 单行信息可用 `git commit -m`；多行信息必须写入仓库外临时文件，并用 `git commit -F <文件>`。
 7. 提交后检查 `git log -1 --oneline`。
@@ -86,7 +99,7 @@ This reverts commit <hash>.
 
 ## 输出规则
 
-用户只要求提交信息时，只输出提交信息纯文本，不加代码块，不解释推理过程。用户要求执行提交时，成功后简要报告提交信息和 commit hash；失败时报告失败原因与下一步。
+用户只要求提交信息时，只输出提交信息纯文本，不加代码块，不解释推理过程。存在多个原子组时，仅输出各组候选提交信息并用两个空行分隔。用户要求执行提交时，成功后简要报告提交信息和 commit hash；失败时报告失败原因与下一步。
 
 提交信息格式：
 
@@ -120,13 +133,13 @@ type 必须从下列值中选择：
 
 scope 可选。优先使用组件名、页面/模块名、目录名或明确业务域；跨多个无共同边界的模块时省略。不要使用 `misc`、`common`、`update` 这类笼统 scope。
 
-subject 使用简体中文动宾结构，祈使语气，不超过 50 个中文字符，结尾不加标点。避免“了”“的”“的问题”“进行”“为了”“来”等冗余词。
+subject 遵循所选语言和项目现有提交的自然表达，使用简洁的动作语气，结尾不加标点。简体中文使用动宾结构和祈使语气，不超过 50 个中文字符，并避免“了”“的”“的问题”“进行”“为了”“来”等冗余词；其他语言保持单行精简表达。
 
 ## Body 与 Footer
 
-简单改动只写 header。改动跨多文件、逻辑较复杂、包含迁移步骤，或 subject 无法覆盖关键行为时，才生成 body。
+默认只写 header。仅当省略 body 会遗漏无法由 subject 表达的关键行为、必要动机、影响或迁移信息时，才生成 body。文件多、diff 大或逻辑复杂本身不构成添加 body 的理由；不确定是否必要时省略。
 
-body 用 `-` 分点，每条单行陈述“做了什么”以及必要的动机或影响，与 subject 不重复；3-5 条为宜，超过说明应拆分提交。禁止按文件罗列改动，也不要逐行翻译 diff。
+需要 body 时用 `-` 分点，每条都必须补充理解或使用该提交所必需的信息，与 subject 不重复。复杂提交通常使用 3-5 条，但条目数量服从必要性；禁止为凑条目补充内容、按文件罗列改动或逐行翻译 diff，必要信息超过 5 条时应拆分提交。
 
 每个 bullet 必须独占一行，使用真实换行符分隔，禁止把多条 bullet 拼接在同一行内，也禁止输出 `\n`、`\\n` 这类转义字面量代替换行。生成多行提交信息时务必通过 `git commit -F <文件>` 写入，不要用 `git commit -m` 拼接含转义符的字符串。
 
@@ -146,12 +159,10 @@ style(Button): 调整边框颜色
 docs: 更新部署文档
 ```
 
-```text
-refactor(Auth): 重构登录状态管理
+项目约定或提交历史以英语为主时：
 
-- 将 token 存储迁移到 Pinia
-- 统一 Axios 响应拦截器的登出处理
-- 移除冗余本地存储辅助函数
+```text
+docs: update deployment guide
 ```
 
 ```text

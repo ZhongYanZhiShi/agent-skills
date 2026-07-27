@@ -23,7 +23,7 @@ skills/
 | 技能 | 用途 |
 | --- | --- |
 | `skills/audit-project` | 面向 React、Next.js、Vue、Nuxt、Node.js 及 Monorepo 执行全量只读审查，输出带覆盖情况、证据和优先级的风险、优化项与重构建议。 |
-| `skills/commit-message` | 根据 Git diff 生成简体中文 Conventional Commit 提交信息，并在用户明确要求时执行本地 `git commit`。 |
+| `skills/commit-message` | 根据项目约定和提交历史选择语言生成 Conventional Commit，并在用户明确要求时执行本地 `git commit`；无法判断时默认使用简体中文。 |
 | `skills/code-simplify` | 审查、精简并清理代码改动，重点关注复用性、可维护性和运行效率。 |
 | `skills/frontend-file-structure` | 规划、评审或重构 React、Vue、Next.js、Nuxt、Vite 等前端项目的文件结构与目录边界。 |
 | `skills/post-code-reflection` | 将 AI 生成代码后的审查、对比、改写练习和经验沉淀整理成学习闭环。 |
