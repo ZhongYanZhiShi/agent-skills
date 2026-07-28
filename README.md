@@ -28,6 +28,7 @@ skills/
 | `skills/code-simplify` | 审查、精简并清理代码改动，重点关注复用性、可维护性和运行效率。 |
 | `skills/frontend-file-structure` | 规划、评审或重构 React、Vue、Next.js、Nuxt、Vite 等前端项目的文件结构与目录边界。 |
 | `skills/post-code-reflection` | 将 AI 生成代码后的审查、对比、改写练习和经验沉淀整理成学习闭环。 |
+| `skills/rewrite-git-history-safely` | 安全迁移并清洗 Git 历史，按可补充的时区、节假日、补班日和禁用时段规则改写提交时间。 |
 
 ## 维护约定
 
