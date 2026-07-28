@@ -1,5 +1,7 @@
 # Agent Skills
 
+[简体中文](README.md) | [English](README.en.md)
+
 这个仓库用于维护可复用的 Agent 技能。每个技能放在 `skills/<skill-name>/` 目录下，英文版 `SKILL.md` 是必需的运行时说明；面向用户阅读的简体中文版使用 `SKILL.zh-Hans.md`。其他资源只在确有需要时添加，避免重复文档和维护负担。
 
 ## 目录结构
