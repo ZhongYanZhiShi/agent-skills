@@ -1,0 +1,4 @@
+interface:
+  display_name: "整理 Git 提交时间"
+  short_description: "按本地时区、工作时段和官方节假日日历安全整理提交时间"
+  default_prompt: "使用 $rewrite-git-commit-times 按我的工作时段安全整理 Git 提交时间。"

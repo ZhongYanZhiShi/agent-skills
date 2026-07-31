@@ -32,7 +32,7 @@ skills/
 | `skills/frontend-file-structure` | 规划、评审或重构 React、Vue、Next.js、Nuxt、Vite 等前端项目的文件结构与目录边界。 |
 | `skills/manage-frontend-debug-tools` | 自动识别 React、Vue、Next.js、Nuxt 与工作区，按需求比较 Stars、推荐、安装、更新并验证写入项目的本地调试包；不管理浏览器扩展。 |
 | `skills/post-code-reflection` | 将 AI 生成代码后的审查、对比、改写练习和经验沉淀整理成学习闭环。 |
-| `skills/rewrite-git-history-safely` | 安全迁移并清洗 Git 历史，按可补充的时区、节假日、补班日和禁用时段规则改写提交时间。 |
+| `skills/rewrite-git-commit-times` | 默认整理本地时区当天的 Git 提交时间，并在明确日期范围内结合官方节假日缓存与工作时段安全改写。 |
 
 ## 维护约定
 

@@ -1,5 +1,4 @@
-#!/usr/bin/env python3
-"""Rewrite a linear Git branch with configurable calendar and time rules."""
+"""Rewrite selected Git commit times into configured working windows."""
 
 from __future__ import annotations
 
@@ -11,6 +10,7 @@ import subprocess
 import tempfile
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
+from itertools import pairwise
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -19,7 +19,20 @@ from zoneinfo import ZoneInfo
 class Window:
     start: int
     end: int
-    when: str
+
+
+@dataclass(frozen=True)
+class DateScope:
+    start: date
+    end: date
+
+    def contains(self, day: date) -> bool:
+        return self.start <= day <= self.end
+
+    def describe(self) -> str:
+        if self.start == self.end:
+            return self.start.isoformat()
+        return f"{self.start.isoformat()}..{self.end.isoformat()}"
 
 
 @dataclass(frozen=True)
@@ -28,6 +41,8 @@ class Rules:
     holidays: frozenset[date]
     workdays: frozenset[date]
     windows: tuple[Window, ...]
+    scope: DateScope | None
+    author_emails: frozenset[str]
 
     def is_workday(self, day: date) -> bool:
         if day in self.workdays:
@@ -39,42 +54,56 @@ class Rules:
     def is_allowed(self, value: datetime) -> bool:
         local = value.astimezone(self.timezone)
         second = local.hour * 3600 + local.minute * 60 + local.second
-        workday = self.is_workday(local.date())
-        return not any(
-            window.start <= second < window.end and (window.when == "all" or workday)
-            for window in self.windows
+        return self.is_workday(local.date()) and any(
+            window.start <= second < window.end for window in self.windows
         )
 
     def move_forward(self, value: datetime) -> datetime:
         candidate = value.astimezone(self.timezone)
-        while not self.is_allowed(candidate):
-            second = candidate.hour * 3600 + candidate.minute * 60 + candidate.second
-            active = [
-                window
-                for window in self.windows
-                if window.start <= second < window.end
-                and (window.when == "all" or self.is_workday(candidate.date()))
-            ]
-            end = max(window.end for window in active)
-            if end == 24 * 3600:
-                candidate = datetime.combine(
-                    candidate.date() + timedelta(days=1),
-                    time.min,
-                    self.timezone,
+        while True:
+            if self.is_workday(candidate.date()):
+                second = (
+                    candidate.hour * 3600 + candidate.minute * 60 + candidate.second
                 )
-            else:
-                candidate = datetime.combine(
-                    candidate.date(),
-                    time(end // 3600, (end % 3600) // 60, end % 60),
-                    self.timezone,
-                )
-        return candidate
+                for window in self.windows:
+                    if window.start <= second < window.end:
+                        return candidate
+                    if second < window.start:
+                        return datetime.combine(
+                            candidate.date(),
+                            time(
+                                window.start // 3600,
+                                (window.start % 3600) // 60,
+                                window.start % 60,
+                            ),
+                            self.timezone,
+                        )
+            candidate = datetime.combine(
+                candidate.date() + timedelta(days=1),
+                time(
+                    self.windows[0].start // 3600,
+                    (self.windows[0].start % 3600) // 60,
+                    self.windows[0].start % 60,
+                ),
+                self.timezone,
+            )
 
     def adjust(self, value: datetime, previous: datetime | None) -> datetime:
         candidate = self.move_forward(value)
         if previous is not None and candidate <= previous:
             candidate = self.move_forward(previous + timedelta(seconds=1))
         return candidate
+
+    def selects(self, commit: Commit) -> bool:
+        local_day = commit.committer_date.astimezone(self.timezone).date()
+        in_scope = self.scope is None or self.scope.contains(local_day)
+        author_matches = (
+            "*" in self.author_emails or commit.author_email in self.author_emails
+        )
+        return in_scope and author_matches
+
+    def describe_scope(self) -> str:
+        return "all" if self.scope is None else self.scope.describe()
 
 
 @dataclass(frozen=True)
@@ -146,31 +175,57 @@ def load_rules(path: Path) -> Rules:
         )
 
     windows = []
-    for raw in payload.get("forbidden_windows", []):
-        when = raw.get("when", "workday")
-        if when not in {"workday", "all"}:
-            raise ValueError("window.when must be 'workday' or 'all'")
+    for raw in payload.get("work_windows", []):
         start = parse_time(raw["start"])
         end = parse_time(raw["end"], allow_24=True)
         if start >= end:
             raise ValueError(
-                "windows must be non-crossing half-open ranges; split "
+                "work windows must be non-crossing half-open ranges; split "
                 "cross-midnight ranges"
             )
-        windows.append(Window(start, end, when))
+        windows.append(Window(start, end))
+    windows.sort(key=lambda item: item.start)
+    if not windows:
+        raise ValueError("at least one work window is required")
+    for previous, current in pairwise(windows):
+        if current.start < previous.end:
+            raise ValueError("work windows must not overlap")
 
-    covered_until = 0
-    for window in sorted(
-        (window for window in windows if window.when == "all"),
-        key=lambda item: item.start,
+    raw_scope = payload.get("date_scope")
+    if raw_scope is None:
+        today = datetime.now(timezone).date()
+        scope = DateScope(today, today)
+    elif raw_scope == "all":
+        scope = None
+    elif isinstance(raw_scope, dict) and set(raw_scope) == {"start", "end"}:
+        scope = DateScope(
+            date.fromisoformat(str(raw_scope["start"])),
+            date.fromisoformat(str(raw_scope["end"])),
+        )
+        if scope.end < scope.start:
+            raise ValueError("date_scope ends before it starts")
+    else:
+        raise ValueError("date_scope must be 'all' or {start, end}")
+
+    raw_authors = payload.get("author_emails")
+    if (
+        not isinstance(raw_authors, list)
+        or not raw_authors
+        or not all(isinstance(value, str) and value for value in raw_authors)
     ):
-        if window.start > covered_until:
-            break
-        covered_until = max(covered_until, window.end)
-    if covered_until == 24 * 3600:
-        raise ValueError("'all' windows cannot cover the entire day")
+        raise ValueError("author_emails must be a non-empty string list")
+    author_emails = frozenset(raw_authors)
+    if "*" in author_emails and len(author_emails) != 1:
+        raise ValueError("'*' must be the only author_emails entry")
 
-    return Rules(timezone, holidays, workdays, tuple(windows))
+    return Rules(
+        timezone,
+        holidays,
+        workdays,
+        tuple(windows),
+        scope,
+        author_emails,
+    )
 
 
 def parse_commit(repo: Path, oid: str) -> Commit:
@@ -269,18 +324,29 @@ def load_commits(repo: Path, source: str) -> list[Commit]:
 def calculate_schedule(
     commits: list[Commit],
     rules: Rules,
-) -> tuple[list[tuple[datetime, datetime]], int, int, int]:
+) -> tuple[list[tuple[datetime, datetime]], int, int, int, int]:
     schedule = []
-    previous_author = None
-    previous_committer = None
+    previous_selected_author = None
+    previous_selected_committer = None
+    selected = 0
     changed_author = 0
     changed_committer = 0
     signature_loss = 0
     chain_changed = False
 
     for commit in commits:
-        author = rules.adjust(commit.author_date, previous_author)
-        committer = rules.adjust(commit.committer_date, previous_committer)
+        if rules.selects(commit):
+            selected += 1
+            author = rules.adjust(commit.author_date, previous_selected_author)
+            committer = rules.adjust(
+                commit.committer_date,
+                previous_selected_committer,
+            )
+            previous_selected_author = author
+            previous_selected_committer = committer
+        else:
+            author = commit.author_date
+            committer = commit.committer_date
         author_changed = author != commit.author_date
         committer_changed = committer != commit.committer_date
         changed_author += author_changed
@@ -289,10 +355,8 @@ def calculate_schedule(
         if commit.signed and chain_changed:
             signature_loss += 1
         schedule.append((author, committer))
-        previous_author = author
-        previous_committer = committer
 
-    return schedule, changed_author, changed_committer, signature_loss
+    return schedule, selected, changed_author, changed_committer, signature_loss
 
 
 def create_commit(
@@ -377,19 +441,23 @@ def self_test() -> None:
         frozenset({date(2026, 1, 1)}),
         frozenset({date(2026, 1, 4)}),
         (
-            Window(parse_time("08:30"), parse_time("12:00"), "workday"),
-            Window(parse_time("14:00"), parse_time("21:00"), "workday"),
+            Window(parse_time("09:00"), parse_time("12:00")),
+            Window(parse_time("14:00"), parse_time("18:00")),
         ),
+        DateScope(date(2026, 1, 1), date(2026, 1, 31)),
+        frozenset({"*"}),
     )
-    assert rules.is_allowed(datetime.fromisoformat("2026-01-04T12:00:00+08:00"))
-    assert not rules.is_allowed(datetime.fromisoformat("2026-01-04T10:00:00+08:00"))
-    assert rules.is_allowed(datetime.fromisoformat("2026-01-01T10:00:00+08:00"))
+    assert rules.is_allowed(datetime.fromisoformat("2026-01-04T10:00:00+08:00"))
+    assert not rules.is_allowed(datetime.fromisoformat("2026-01-01T10:00:00+08:00"))
     assert rules.move_forward(
-        datetime.fromisoformat("2026-01-05T09:00:00+08:00")
-    ) == datetime.fromisoformat("2026-01-05T12:00:00+08:00")
+        datetime.fromisoformat("2026-01-05T08:00:00+08:00")
+    ) == datetime.fromisoformat("2026-01-05T09:00:00+08:00")
     assert rules.move_forward(
-        datetime.fromisoformat("2026-01-05T16:00:00+08:00")
-    ) == datetime.fromisoformat("2026-01-05T21:00:00+08:00")
+        datetime.fromisoformat("2026-01-05T12:30:00+08:00")
+    ) == datetime.fromisoformat("2026-01-05T14:00:00+08:00")
+    assert rules.move_forward(
+        datetime.fromisoformat("2026-01-05T18:00:00+08:00")
+    ) == datetime.fromisoformat("2026-01-06T09:00:00+08:00")
     print("self-test passed")
 
 
@@ -417,15 +485,21 @@ def main() -> None:
     old_target = run_git(repo, ["rev-parse", target_ref]).decode().strip()
     commits = load_commits(repo, args.source)
     rules = load_rules(args.rules)
-    schedule, changed_author, changed_committer, signature_loss = calculate_schedule(
-        commits, rules
-    )
+    (
+        schedule,
+        selected,
+        changed_author,
+        changed_committer,
+        signature_loss,
+    ) = calculate_schedule(commits, rules)
 
     summary = {
         "mode": "apply" if args.apply else "dry-run",
         "source": args.source,
         "target": target_ref,
         "commits": len(commits),
+        "selected_commits": selected,
+        "date_scope": rules.describe_scope(),
         "changed_author_dates": changed_author,
         "changed_committer_dates": changed_committer,
         "signatures_invalidated": signature_loss,
@@ -435,6 +509,8 @@ def main() -> None:
     if not args.apply:
         print(json.dumps(summary, ensure_ascii=False, indent=2))
         return
+    if not selected:
+        raise ValueError("no commits match date_scope and author_emails")
     if target_ref in checked_out_refs(repo):
         raise ValueError(f"target branch is checked out in a worktree: {target_ref}")
     if signature_loss and not args.allow_signature_loss:
@@ -464,8 +540,10 @@ def main() -> None:
             )
         if rewritten.author_date != author or rewritten.committer_date != committer:
             raise RuntimeError(f"rewritten time mismatch: {rewritten.oid}")
-        if not rules.is_allowed(author) or not rules.is_allowed(committer):
-            raise RuntimeError(f"forbidden time remains: {rewritten.oid}")
+        if rules.selects(source) and (
+            not rules.is_allowed(author) or not rules.is_allowed(committer)
+        ):
+            raise RuntimeError(f"time remains outside work windows: {rewritten.oid}")
 
     missing = [
         line
@@ -478,7 +556,7 @@ def main() -> None:
         raise RuntimeError(f"rewritten history has missing objects: {missing}")
 
     map_path = args.map_path or Path(tempfile.gettempdir()) / (
-        f"rewrite-git-history-{new_tip[:12]}.tsv"
+        f"rewrite-git-commit-times-{new_tip[:12]}.tsv"
     )
     write_map(map_path, old_target, rows)
     run_git(
@@ -486,7 +564,7 @@ def main() -> None:
         [
             "update-ref",
             "-m",
-            "rewrite commit dates with calendar rules",
+            "rewrite selected commit times into work windows",
             target_ref,
             new_tip,
             old_target,
