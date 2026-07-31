@@ -42,6 +42,7 @@ maintainer-facing notes that should not be loaded at runtime.
 | `skills/commit-message` | Generates Conventional Commit messages according to project conventions and history, and runs local `git commit` only when explicitly requested; defaults to Simplified Chinese when the language cannot be determined. |
 | `skills/code-simplify` | Reviews, simplifies, and cleans up code changes with an emphasis on reuse, maintainability, and runtime efficiency. |
 | `skills/frontend-file-structure` | Plans, reviews, or refactors file structures and directory boundaries for React, Vue, Next.js, Nuxt, Vite, and similar frontend projects. |
+| `skills/manage-frontend-debug-tools` | Detects React, Vue, Next.js, Nuxt, and workspaces, then compares Stars and manages only project-local debugging packages, not browser extensions. |
 | `skills/post-code-reflection` | Turns reviews, comparisons, rewriting exercises, and lessons from AI-generated code into a learning loop. |
 | `skills/rewrite-git-history-safely` | Safely migrates and sanitizes Git history, rewriting commit times with extensible timezone, holiday, makeup-workday, and forbidden-time rules. |
 

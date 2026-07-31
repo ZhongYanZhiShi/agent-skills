@@ -1,0 +1,4 @@
+interface:
+  display_name: "Frontend Debug Tools"
+  short_description: "Manage project-local React and Vue debugging packages."
+  default_prompt: "Use $manage-frontend-debug-tools to detect this project framework and recommend, install, or update only project-local debugging packages."
