@@ -1,0 +1,4 @@
+interface:
+  display_name: "审计 Git 历史敏感信息"
+  short_description: "只读排查 Git 历史提交中的密钥、个人信息和本机绝对路径"
+  default_prompt: "使用 $audit-git-history-sensitive-data 只读审计此仓库历史中的敏感信息。"

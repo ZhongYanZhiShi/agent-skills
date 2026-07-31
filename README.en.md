@@ -39,6 +39,7 @@ maintainer-facing notes that should not be loaded at runtime.
 | Skill | Purpose |
 | --- | --- |
 | `skills/audit-project` | Performs comprehensive read-only reviews of React, Next.js, Vue, Nuxt, Node.js, and monorepo projects, reporting coverage, evidence, prioritized risks, optimizations, and refactoring recommendations. |
+| `skills/audit-git-history-sensitive-data` | Audits Git history for secrets, personal information, local paths, and other sensitive data, reporting only redacted evidence. |
 | `skills/commit-message` | Generates Conventional Commit messages according to project conventions and history, and runs local `git commit` only when explicitly requested; defaults to Simplified Chinese when the language cannot be determined. |
 | `skills/code-simplify` | Reviews, simplifies, and cleans up code changes with an emphasis on reuse, maintainability, and runtime efficiency. |
 | `skills/frontend-file-structure` | Plans, reviews, or refactors file structures and directory boundaries for React, Vue, Next.js, Nuxt, Vite, and similar frontend projects. |
