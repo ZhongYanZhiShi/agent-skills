@@ -9,4 +9,4 @@ interface:
     - "中文提交信息"
     - "英文提交信息"
     - "提交说明"
-  default_prompt: "使用 $commit-message 检查项目约定和提交历史，选择对应语言，保留无关改动，并按原子组生成或提交 Conventional Commit。"
+  default_prompt: "使用 $commit-message 检查项目约定和提交历史，选择对应语言，保留无关改动，并按具体功能而非计划标识拆分原子组，生成或提交 Conventional Commit。"

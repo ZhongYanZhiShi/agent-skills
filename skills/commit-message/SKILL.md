@@ -59,7 +59,7 @@ When the index is empty:
 
 Check whether the diff contains independent intents. When it can be split, generate one candidate message per atomic group without analysis, numbering, or headings. If the user explicitly requests one commit, choose the dominant intent for the header and put only necessary secondary details in the body.
 
-Before returning, verify that the type is accurate, the scope is necessary and specific, the subject is concise, the body and footer appear only when needed, and no AI or tool attribution is present.
+Before returning, verify that the type is accurate, the scope is necessary and specific, the subject names a concrete behavior visible in the diff, the body and footer appear only when needed, and no AI or tool attribution is present.
 
 ## COMMIT Mode
 
@@ -68,6 +68,7 @@ Commit only changes requested by the user and preserve unrelated dirty-worktree 
 Atomic grouping:
 
 - Group by behavior, module, and independent reversibility. Separate unrelated features, configuration, documentation, and test-only changes by default.
+- Treat roadmap, milestone, phase, sprint, and ticket labels as coordination metadata, not atomic intent. Name and split groups by the concrete behavior they deliver.
 - Keep implementation with tests that directly verify it.
 - Keep generated files with the source changes that produce them unless the user explicitly excludes them.
 - Do not hide failed, unrelated, or unexplained changes in a broad commit.
@@ -131,9 +132,11 @@ Choose a type from this list:
 | chore | Perform maintenance that does not affect product behavior |
 | revert | Revert a commit |
 
-The scope is optional. Prefer a component, page or module, directory, or specific business domain. Omit it for unrelated cross-module changes with no shared boundary. Do not use vague scopes such as `misc`, `common`, or `update`.
+The scope is optional. Prefer a component, page or module, directory, or specific business domain. Omit it for unrelated cross-module changes with no shared boundary. Do not use vague scopes such as `misc`, `common`, or `update`, or coordination identifiers such as `M0-1`, `P0`, `phase-2`, `sprint-7`, or `TASK-123`.
 
 Write the subject naturally in the selected language using a concise imperative action and no ending punctuation. In Simplified Chinese, use an imperative verb-object phrase no longer than 50 Chinese characters and avoid filler words such as “了”, “的”, “的问题”, “进行”, “为了”, and “来”. Keep other languages concise and on one line.
+
+The subject must describe the concrete functionality, behavior, defect, configuration, or documentation change contained in the diff. Never use a plan, roadmap, milestone, phase, sprint, or ticket identifier as the subject or as a substitute for that description. If the project or user explicitly requires traceability, keep the concrete subject and add `Refs: <ID>` in the footer; otherwise omit the identifier. A planning-only documentation diff must still name the exact documented change, such as a recorded build result, rather than claiming only that a phase is complete.
 
 ## Body and Footer
 
@@ -143,7 +146,7 @@ When a body is necessary, use `-` bullets. Every bullet must add information req
 
 Put each bullet on its own line with real newline characters. Never join bullets on one line or output literal `\n` or `\\n` escapes in place of newlines. Commit multiline messages with `git commit -F <file>`, not `git commit -m` with escaped strings.
 
-For an explicit incompatible change, start the footer with `BREAKING CHANGE:` and explain the impact and migration. Add `Closes #<ID>` only when the user, branch name, diff, or context explicitly supplies an issue number.
+For an explicit incompatible change, start the footer with `BREAKING CHANGE:` and explain the impact and migration. Use `Refs: <ID>` only when the user or project explicitly requires non-closing traceability. Add `Closes #<ID>` only when the user, branch name, diff, or context explicitly supplies an issue number and the commit closes that issue.
 
 ## Forbidden Content
 
@@ -151,18 +154,50 @@ Never include AI-agent, tool, or platform attribution, including `Co-Authored-By
 
 ## Examples
 
+Reject planning-label subjects such as:
+
+```text
+feat: complete M0-1 foundation
+```
+
+```text
+feat(M0-1): 完成工程底座
+```
+
+Describe the delivered behavior instead:
+
+```text
+feat(desktop): 增加启动页与诊断操作 ID
+```
+
+```text
+build: 锁定 Node、pnpm 与 Rust 工具链
+```
+
+```text
+docs: 记录 macOS 构建验收结果
+```
+
+Explicit traceability stays out of the functional subject:
+
+```text
+fix(editor): 保留组合输入中的未提交文本
+
+Refs: TASK-123
+```
+
 ```text
 style(Button): 调整边框颜色
 ```
 
 ```text
-docs: 更新部署文档
+docs: 补充生产环境部署步骤
 ```
 
 When project rules or commit history primarily use English:
 
 ```text
-docs: update deployment guide
+docs: document production deployment steps
 ```
 
 ```text

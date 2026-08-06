@@ -59,7 +59,7 @@ git log -30 --no-merges --pretty=format:'%h%x09%s'
 
 检查 diff 是否包含多个独立意图。能拆分时，为每个原子组各生成一条候选提交信息，不附加分析、序号或标题；用户明确要求合并时，选择主导意图作为 header，其余必要信息才放入 body。
 
-生成后自检：type 准确、scope 必要且具体、subject 精简、body/footer 只在需要时出现、没有任何 AI 或工具署名。
+生成后自检：type 准确、scope 必要且具体、subject 描述 diff 中可见的具体行为、body/footer 只在需要时出现、没有任何 AI 或工具署名。
 
 ## COMMIT 模式
 
@@ -68,6 +68,7 @@ git log -30 --no-merges --pretty=format:'%h%x09%s'
 原子分组规则：
 
 - 按行为、模块和可回滚性分组；不同功能、配置、文档、测试专用改动默认分开。
+- 路线图、里程碑、阶段、Sprint 和任务编号只是协作元数据，不是原子意图；按实际交付的具体行为命名和拆分提交组。
 - 实现与直接验证该实现的测试放在同一组。
 - 生成文件与产生它的源码改动放在同一组，除非用户明确排除。
 - 不把失败、无关或无法解释的改动藏进宽泛提交。
@@ -131,9 +132,11 @@ type 必须从下列值中选择：
 | chore | 不影响产品行为的杂务 |
 | revert | 回滚提交 |
 
-scope 可选。优先使用组件名、页面/模块名、目录名或明确业务域；跨多个无共同边界的模块时省略。不要使用 `misc`、`common`、`update` 这类笼统 scope。
+scope 可选。优先使用组件名、页面/模块名、目录名或明确业务域；跨多个无共同边界的模块时省略。不要使用 `misc`、`common`、`update` 这类笼统 scope，也不要使用 `M0-1`、`P0`、`phase-2`、`sprint-7`、`TASK-123` 等协作标识。
 
 subject 遵循所选语言和项目现有提交的自然表达，使用简洁的动作语气，结尾不加标点。简体中文使用动宾结构和祈使语气，不超过 50 个中文字符，并避免“了”“的”“的问题”“进行”“为了”“来”等冗余词；其他语言保持单行精简表达。
+
+subject 必须描述 diff 中实际包含的具体功能、行为、缺陷、配置或文档变化。不得把计划、路线图、里程碑、阶段、Sprint 或任务编号作为 subject，或用它代替功能描述。项目或用户明确要求可追踪性时，仍保留具体功能 subject，并在 footer 使用 `Refs: <ID>`；否则省略标识。即使 diff 只更新计划文档，也要写明记录了哪项具体结果，例如构建验收结果，而不是只说某阶段已完成。
 
 ## Body 与 Footer
 
@@ -143,7 +146,7 @@ subject 遵循所选语言和项目现有提交的自然表达，使用简洁的
 
 每个 bullet 必须独占一行，使用真实换行符分隔，禁止把多条 bullet 拼接在同一行内，也禁止输出 `\n`、`\\n` 这类转义字面量代替换行。生成多行提交信息时务必通过 `git commit -F <文件>` 写入，不要用 `git commit -m` 拼接含转义符的字符串。
 
-存在明确不兼容变更时，footer 使用 `BREAKING CHANGE:` 开头，并写清影响与迁移方式。只有用户、分支名、diff 或上下文明确提供 issue 编号时，才添加 `Closes #<ID>`。
+存在明确不兼容变更时，footer 使用 `BREAKING CHANGE:` 开头，并写清影响与迁移方式。只有用户或项目明确要求非关闭式追踪时，才使用 `Refs: <ID>`。只有用户、分支名、diff 或上下文明确提供 issue 编号且该提交会关闭对应 issue 时，才添加 `Closes #<ID>`。
 
 ## 禁止内容
 
@@ -151,18 +154,50 @@ subject 遵循所选语言和项目现有提交的自然表达，使用简洁的
 
 ## 示例
 
+拒绝使用计划标识代替功能描述：
+
+```text
+feat: complete M0-1 foundation
+```
+
+```text
+feat(M0-1): 完成工程底座
+```
+
+改为描述实际交付：
+
+```text
+feat(desktop): 增加启动页与诊断操作 ID
+```
+
+```text
+build: 锁定 Node、pnpm 与 Rust 工具链
+```
+
+```text
+docs: 记录 macOS 构建验收结果
+```
+
+明确要求追踪时，标识只放在 footer，不取代功能 subject：
+
+```text
+fix(editor): 保留组合输入中的未提交文本
+
+Refs: TASK-123
+```
+
 ```text
 style(Button): 调整边框颜色
 ```
 
 ```text
-docs: 更新部署文档
+docs: 补充生产环境部署步骤
 ```
 
 项目约定或提交历史以英语为主时：
 
 ```text
-docs: update deployment guide
+docs: document production deployment steps
 ```
 
 ```text
