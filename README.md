@@ -33,6 +33,7 @@ skills/
 | `skills/manage-frontend-debug-tools` | 自动识别 React、Vue、Next.js、Nuxt 与工作区，按需求比较 Stars、推荐、安装、更新并验证写入项目的本地调试包；不管理浏览器扩展。 |
 | `skills/post-code-reflection` | 将 AI 生成代码后的审查、对比、改写练习和经验沉淀整理成学习闭环。 |
 | `skills/rewrite-git-commit-times` | 默认整理本地时区当天的 Git 提交时间，并在明确日期范围内结合官方节假日缓存与工作时段安全改写。 |
+| `skills/rust-desktop-test-routing` | 按真实运行时表面路由 Rust 桌面（Tauri、Wry、egui、iced、Slint、GPUI）的测试与验收证据，防止把仅浏览器的检查误报为原生桌面验收。 |
 
 ## 维护约定
 

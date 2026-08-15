@@ -46,6 +46,7 @@ maintainer-facing notes that should not be loaded at runtime.
 | `skills/manage-frontend-debug-tools` | Detects React, Vue, Next.js, Nuxt, and workspaces, then compares Stars and manages only project-local debugging packages, not browser extensions. |
 | `skills/post-code-reflection` | Turns reviews, comparisons, rewriting exercises, and lessons from AI-generated code into a learning loop. |
 | `skills/rewrite-git-commit-times` | Rewrites today's Git commit times by default, using local timezone, working windows, and cached official holiday schedules for explicit date scopes. |
+| `skills/rust-desktop-test-routing` | Routes testing and acceptance evidence for native Rust desktop apps (Tauri, Wry, egui, iced, Slint, GPUI) by the real runtime surface, preventing browser-only checks from being reported as native desktop acceptance. |
 
 ## Maintenance Conventions
 
