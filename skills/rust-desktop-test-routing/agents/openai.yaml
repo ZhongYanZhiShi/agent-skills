@@ -1,0 +1,4 @@
+interface:
+  display_name: "Rust Desktop Test Routing"
+  short_description: "Route testing and acceptance by the real Rust desktop runtime surface."
+  default_prompt: "Use $rust-desktop-test-routing to classify this change and choose verification by the layer that actually runs it."
