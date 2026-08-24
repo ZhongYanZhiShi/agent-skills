@@ -1,0 +1,4 @@
+interface:
+  display_name: "Shadcn Guidelines"
+  short_description: "按真实实现与上下文应用可扩展的 shadcn 使用规则"
+  default_prompt: "使用 $shadcn-guidelines 检查当前 shadcn 组件的用法、交互状态与布局副作用。"
