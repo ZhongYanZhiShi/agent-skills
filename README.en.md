@@ -47,6 +47,7 @@ maintainer-facing notes that should not be loaded at runtime.
 | `skills/post-code-reflection` | Turns reviews, comparisons, rewriting exercises, and lessons from AI-generated code into a learning loop. |
 | `skills/rewrite-git-commit-times` | Rewrites today's Git commit times by default, using local timezone, working windows, and cached official holiday schedules for explicit date scopes. |
 | `skills/rust-desktop-test-routing` | Routes testing and acceptance evidence for native Rust desktop apps (Tauri, Wry, egui, iced, Slint, GPUI) by the real runtime surface, preventing browser-only checks from being reported as native desktop acceptance. |
+| `skills/shadcn-guidelines` | Applies extensible shadcn usage rules against the project's actual implementation and context across components, interaction, layout, and styling. |
 
 ## Maintenance Conventions
 

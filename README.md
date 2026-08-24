@@ -34,6 +34,7 @@ skills/
 | `skills/post-code-reflection` | 将 AI 生成代码后的审查、对比、改写练习和经验沉淀整理成学习闭环。 |
 | `skills/rewrite-git-commit-times` | 默认整理本地时区当天的 Git 提交时间，并在明确日期范围内结合官方节假日缓存与工作时段安全改写。 |
 | `skills/rust-desktop-test-routing` | 按真实运行时表面路由 Rust 桌面（Tauri、Wry、egui、iced、Slint、GPUI）的测试与验收证据，防止把仅浏览器的检查误报为原生桌面验收。 |
+| `skills/shadcn-guidelines` | 积累并应用可扩展的 shadcn 使用规则，根据项目真实实现和上下文处理组件、交互、布局与样式问题。 |
 
 ## 维护约定
 
