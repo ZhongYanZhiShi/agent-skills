@@ -86,8 +86,10 @@ node <skill-directory>/scripts/github-stars.mjs --json owner/repository ...
 ```
 
 If the script is unavailable, query the official GitHub API or repository pages. Record the query date,
-mark monorepo-level counts with `†`, and use `—` when no dedicated repository exists. Stars indicate
-popularity, not compatibility or quality.
+mark monorepo-level counts with `†`, and use `—` when no dedicated repository exists or a lookup fails.
+The script returns successful repositories plus per-repository errors, with exit code 1 for partial
+failure; keep successful counts and retry only failed lookups when needed. Stars indicate popularity,
+not compatibility or quality.
 
 Prefer an existing eligible package. Otherwise recommend at most one package per distinct need. There
 is no universal React or Vue package bundle: if the project has no stated debugging need, recommend no
@@ -131,17 +133,8 @@ Run the smallest checks that prove the change:
 
 ## Output
 
-Report:
+Report the target workspace, relevant framework/version evidence, packages or configuration changed or proposed, and verification results. Include compatibility constraints or skipped work only when they affect the decision.
 
-1. mode and target workspace;
-2. detected framework, versions, package manager, and evidence;
-3. a Markdown table grouped by React, Vue, and shared packages as applicable, with columns `Priority`,
-   `Need`, `Package`, `Project install / update`, `GitHub Stars`, and `Decision`;
-4. packages, configuration, and commands changed or proposed;
-5. verification results;
-6. skipped packages, exclusions, compatibility constraints, and remaining risks.
+When comparing candidates, use a table with `Need`, `Package`, and `Decision`; include install/update commands when useful. Add GitHub Stars only for that comparison, with `Stars checked: YYYY-MM-DD`, repository links, and `†` for monorepo counts. Show only the detected framework unless a cross-framework comparison is requested or both exist.
 
-Show only the detected framework by default. Show separate React and Vue tables for a cross-framework
-comparison or a repository containing both. Put `Stars checked: YYYY-MM-DD` beside the tables, link
-each count to its repository, and explain `†`. Distinguish **recommended**, **installed**, **updated**,
-**already current**, and **skipped** so the result never implies work that was not completed.
+For a direct installation or update, a concise change and verification report is sufficient. Distinguish **recommended**, **installed**, **updated**, **already current**, and **skipped** according to actual results.

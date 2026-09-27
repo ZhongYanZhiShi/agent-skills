@@ -6,10 +6,7 @@ Browser extensions, standalone apps, global installs, and framework-bundled/no-i
 deliberately excluded.
 
 Package names and links are routing hints, not pinned versions. Verify current official docs, registry
-metadata, compatibility, and Stars before every recommendation or mutation.
-
-Stars snapshot: **2026-08-01**, queried from GitHub. `†` means the count belongs to a larger monorepo.
-Stars are a popularity signal, never the selection rule.
+metadata, and compatibility before every recommendation or mutation. Query Stars only when comparing shortlisted candidates.
 
 ## Contents
 
@@ -48,22 +45,22 @@ Do not install a baseline bundle merely because a framework was detected.
 
 ## React and Next.js
 
-| Priority | Need | Package | Project install / integration | GitHub Stars | Recommendation |
-| --- | --- | --- | --- | ---: | --- |
-| Need-based | Repeatable static code-health scans | [`react-doctor`](https://www.react.doctor/docs/reference/cli-reference) | Add as a development dependency and run the local binary or package script; never invoke its broad `install` path by default | [⭐ 14,214](https://github.com/millionco/react-doctor) | Use only when a pinned, updateable project command is wanted; otherwise no persistent package is needed. |
-| Need-based | Select rendered UI and copy source context for an agent | [`react-grab`](https://www.react-grab.com/) | Run the official `grab` initializer, inspect its diff, and require `react-grab` to remain in the target manifest | [⭐ 7,480](https://github.com/aidenybai/react-grab) | Best match for agent-assisted UI work; keep the integration development-only. |
-| Need-based | Detect React render hot spots | [`react-scan`](https://github.com/aidenybai/react-scan) | Add as a development dependency and wire the smallest development-only integration, or use the official initializer | [⭐ 21,725](https://github.com/aidenybai/react-scan) | Add for a concrete performance problem, not every React project. |
-| Deep diagnosis | Explain which changing inputs trigger unnecessary renders | [`@welldone-software/why-did-you-render`](https://github.com/welldone-software/why-did-you-render) | Add as a development dependency and enable targeted development-only instrumentation | [⭐ 12,506](https://github.com/welldone-software/why-did-you-render) | Use after a render problem is confirmed and its cause remains unclear. |
+| Priority | Need | Package | Project install / integration | Recommendation |
+| --- | --- | --- | --- | --- |
+| Need-based | Repeatable static code-health scans | [`react-doctor`](https://www.react.doctor/docs/reference/cli-reference) | Add as a development dependency and run the local binary or package script; never invoke its broad `install` path by default | Use only when a pinned, updateable project command is wanted; otherwise no persistent package is needed. |
+| Need-based | Select rendered UI and copy source context for an agent | [`react-grab`](https://www.react-grab.com/) | Run the official `grab` initializer, inspect its diff, and require `react-grab` to remain in the target manifest | Best match for agent-assisted UI work; keep the integration development-only. |
+| Need-based | Detect React render hot spots | [`react-scan`](https://github.com/aidenybai/react-scan) | Add as a development dependency and wire the smallest development-only integration, or use the official initializer | Add for a concrete performance problem, not every React project. |
+| Deep diagnosis | Explain which changing inputs trigger unnecessary renders | [`@welldone-software/why-did-you-render`](https://github.com/welldone-software/why-did-you-render) | Add as a development dependency and enable targeted development-only instrumentation | Use after a render problem is confirmed and its cause remains unclear. |
 
 Ordinary breakpoints need no package. For Next.js, reuse source maps and the existing browser or Node
 debugger configuration and return “no project package needed.”
 
 ## Vue and Nuxt
 
-| Priority | Need | Package | Project install / integration | GitHub Stars | Recommendation |
-| --- | --- | --- | --- | ---: | --- |
-| Preferred for Vue 3 + Vite 6+ | Components, reactivity, events, routing, and source inspection | [`vite-plugin-vue-devtools`](https://devtools.vuejs.org/guide/vite-plugin) | Add as a development dependency and register `vueDevTools()` once in Vite config | [⭐ 2,876](https://github.com/vuejs/devtools) | Default persistent Vue inspector when compatible; its component inspector avoids another locator package. |
-| Need-based for TypeScript | SFC and template type diagnostics | [`vue-tsc`](https://github.com/vuejs/language-tools) | Add as a development dependency and reuse or add one focused typecheck script | [⭐ 6,697](https://github.com/vuejs/language-tools) | Static diagnostics companion, not a runtime panel; verify Vue and TypeScript compatibility. |
+| Priority | Need | Package | Project install / integration | Recommendation |
+| --- | --- | --- | --- | --- |
+| Preferred for Vue 3 + Vite 6+ | Components, reactivity, events, routing, and source inspection | [`vite-plugin-vue-devtools`](https://devtools.vuejs.org/guide/vite-plugin) | Add as a development dependency and register `vueDevTools()` once in Vite config | Default persistent Vue inspector when compatible; its component inspector avoids another locator package. |
+| Need-based for TypeScript | SFC and template type diagnostics | [`vue-tsc`](https://github.com/vuejs/language-tools) | Add as a development dependency and reuse or add one focused typecheck script | Static diagnostics companion, not a runtime panel; verify Vue and TypeScript compatibility. |
 
 For Nuxt, the bundled DevTools do not meet this catalog's “installed project package” rule. Recommend
 no baseline package instead of adding a duplicate. Vue 2 also has no default eligible package here;
@@ -73,13 +70,13 @@ report the compatibility boundary.
 
 Install these only when the detected dependency or debugging problem calls for them.
 
-| Applies when | Package | Project install / integration | GitHub Stars | Recommendation |
-| --- | --- | --- | ---: | --- |
-| React already uses TanStack Query | [`@tanstack/react-query-devtools`](https://tanstack.com/query/latest/docs/react/devtools) | Add with the dependency class required by the existing build and wire once near the Query client root | [⭐ 50,028†](https://github.com/TanStack/query) | Inspect query cache and mutations; never add TanStack Query solely for DevTools. |
-| Vue already uses TanStack Query | [`@tanstack/vue-query-devtools`](https://tanstack.com/query/latest/docs/framework/vue/devtools) | Add with the dependency class required by the existing build and wire one panel | [⭐ 50,028†](https://github.com/TanStack/query) | Avoid duplicate panels and require the parent Vue Query package. |
-| Project already uses Vitest | [`@vitest/ui`](https://vitest.dev/guide/ui.html) | Add as a development dependency at the exact compatible Vitest version; run the local `vitest --ui` | [⭐ 16,888†](https://github.com/vitest-dev/vitest) | Add only for interactive test inspection. |
-| Reproducible browser flow or CI trace | [`@playwright/test`](https://playwright.dev/docs/debug) | Add as a development dependency, reuse config, and install only required browser binaries | [⭐ 93,764](https://github.com/microsoft/playwright) | Preferred for intermittent interaction and end-to-end failures. |
-| Repeated isolated component, visual, or accessibility work | [Storybook packages](https://storybook.js.org/docs) | Use the official initializer, inspect its broad scaffold, and require resulting dependencies in the manifest | [⭐ 90,724](https://github.com/storybookjs/storybook) | Too large for one broken component; add only when a persistent workbench pays off. |
+| Applies when | Package | Project install / integration | Recommendation |
+| --- | --- | --- | --- |
+| React already uses TanStack Query | [`@tanstack/react-query-devtools`](https://tanstack.com/query/latest/docs/react/devtools) | Add with the dependency class required by the existing build and wire once near the Query client root | Inspect query cache and mutations; never add TanStack Query solely for DevTools. |
+| Vue already uses TanStack Query | [`@tanstack/vue-query-devtools`](https://tanstack.com/query/latest/docs/framework/vue/devtools) | Add with the dependency class required by the existing build and wire one panel | Avoid duplicate panels and require the parent Vue Query package. |
+| Project already uses Vitest | [`@vitest/ui`](https://vitest.dev/guide/ui.html) | Add as a development dependency at the exact compatible Vitest version; run the local `vitest --ui` | Add only for interactive test inspection. |
+| Reproducible browser flow or CI trace | [`@playwright/test`](https://playwright.dev/docs/debug) | Add as a development dependency, reuse config, and install only required browser binaries | Preferred for intermittent interaction and end-to-end failures. |
+| Repeated isolated component, visual, or accessibility work | [Storybook packages](https://storybook.js.org/docs) | Use the official initializer, inspect its broad scaffold, and require resulting dependencies in the manifest | Too large for one broken component; add only when a persistent workbench pays off. |
 
 Pinia state is already exposed by Vue DevTools. Redux DevTools normally depends on a browser extension.
 Do not add either as a separate project-package recommendation.
@@ -122,7 +119,9 @@ node <skill-directory>/scripts/github-stars.mjs --json \
 
 The script uses the public GitHub REST API and optionally reads `GITHUB_TOKEN` or `GH_TOKEN`. If it
 cannot run, query official GitHub repository pages or API directly. Report the exact count and date;
-use `—` instead of an old estimate when current data cannot be verified.
+use `—` instead of an old estimate when current data cannot be verified. JSON output preserves
+successful `repositories` and lists per-repository `errors`; exit code 1 can mean partial failure.
+Keep successful results and retry only failed lookups when necessary.
 
 ## Update Rules
 

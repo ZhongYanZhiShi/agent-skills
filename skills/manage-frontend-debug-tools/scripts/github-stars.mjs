@@ -18,15 +18,26 @@ function normalizeRepo(value) {
   return repo
 }
 
-function selfTest() {
+async function selfTest() {
   assert.equal(normalizeRepo('aidenybai/react-scan'), 'aidenybai/react-scan')
   assert.equal(normalizeRepo('https://github.com/vuejs/devtools.git'), 'vuejs/devtools')
   assert.equal(normalizeRepo('https://github.com/vuejs/devtools.git/'), 'vuejs/devtools')
   assert.throws(() => normalizeRepo('not-a-repository'))
+  const output = await queryStars(['good/repo', 'missing/repo', 'offline/repo'], undefined, async url => {
+    if (url.endsWith('/offline/repo')) throw new Error('Network unavailable')
+    return url.endsWith('/good/repo')
+      ? { ok: true, json: async () => ({ full_name: 'good/repo', stargazers_count: 123, html_url: 'https://github.com/good/repo' }) }
+      : { ok: false, status: 404 }
+  })
+  assert.deepEqual(output.repositories, [{ repository: 'good/repo', stars: 123, url: 'https://github.com/good/repo' }])
+  assert.deepEqual(output.errors, [
+    { repository: 'missing/repo', error: 'GitHub API returned 404' },
+    { repository: 'offline/repo', error: 'Network unavailable' },
+  ])
   console.log('github-stars self-test passed')
 }
 
-async function fetchStars(repo, token) {
+async function fetchStars(repo, token, fetchImpl) {
   const [owner, name] = repo.split('/')
   const headers = {
     Accept: 'application/vnd.github+json',
@@ -36,13 +47,13 @@ async function fetchStars(repo, token) {
 
   if (token) headers.Authorization = `Bearer ${token}`
 
-  const response = await fetch(
+  const response = await fetchImpl(
     `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}`,
-    { headers },
+    { headers, signal: AbortSignal.timeout(10_000) },
   )
 
   if (!response.ok) {
-    throw new Error(`${repo}: GitHub API returned ${response.status}`)
+    throw new Error(`GitHub API returned ${response.status}`)
   }
 
   const data = await response.json()
@@ -53,9 +64,20 @@ async function fetchStars(repo, token) {
   }
 }
 
+async function queryStars(repos, token, fetchImpl = fetch) {
+  const settled = await Promise.allSettled(repos.map(repo => fetchStars(repo, token, fetchImpl)))
+  const repositories = []
+  const errors = []
+  settled.forEach((result, index) => {
+    if (result.status === 'fulfilled') repositories.push(result.value)
+    else errors.push({ repository: repos[index], error: result.reason.message })
+  })
+  return { repositories, errors }
+}
+
 async function main(args) {
   if (args.includes('--self-test')) {
-    selfTest()
+    await selfTest()
     return
   }
 
@@ -67,17 +89,18 @@ async function main(args) {
 
   const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN
   const checkedAt = new Date().toISOString()
-  const results = await Promise.all(repos.map((repo) => fetchStars(repo, token)))
-  const output = { checked_at: checkedAt, repositories: results }
+  const output = { checked_at: checkedAt, ...await queryStars(repos, token) }
+  if (output.errors.length) process.exitCode = 1
 
   if (json) {
     console.log(JSON.stringify(output, null, 2))
     return
   }
 
-  for (const result of results) {
+  for (const result of output.repositories) {
     console.log(`${result.repository}\t${result.stars}\t${result.url}\t${checkedAt}`)
   }
+  for (const result of output.errors) console.error(`${result.repository}: ${result.error}`)
 }
 
 main(process.argv.slice(2)).catch((error) => {
