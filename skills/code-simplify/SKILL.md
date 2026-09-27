@@ -1,23 +1,18 @@
 ---
 name: code-simplify
-description: >
-  Review, simplify, and clean up code changes with emphasis on reuse, maintainability, and runtime efficiency.
-  Use after implementation, refactoring, bug fixes, or feature work for pre-commit quality checks. Triggers include
-  "simplify code", "cleanup", "clean up", "optimize my code", "review my changes", "review the diff",
-  "code review", "check code quality", and "audit changes". If the user asks only for a review, report findings
-  without editing. Modify files only when the user explicitly asks to fix, clean up, simplify, or optimize.
+description: Use when reviewing a code diff for simplification, reuse, or efficiency, or when asked to clean up, simplify, or optimize existing changes. Applies to scoped changes rather than whole-project audits.
 ---
 
 # Code Simplify
 
-Review and simplify existing code changes with emphasis on reuse, maintainability, and efficiency. First decide whether the user wants review only or direct cleanup. Edit files only when the user explicitly requests cleanup, simplification, optimization, or a fix, or when the context clearly indicates pre-commit cleanup.
+Review existing changes for reuse, maintainability, and efficiency. Choose the mode below before acting.
 
 ## 1. Determine Mode and Scope
 
 Read the current context and the user's wording:
 
 - Review mode: when the user asks to review, audit, check a diff, or assess quality, report findings first and do not edit.
-- Cleanup mode: when the user asks to clean up, simplify, optimize, fix, prepare changes for commit, or finish an implementation, review and then apply only the minimum necessary changes.
+- Cleanup mode: when the user authorizes cleanup, simplification, optimization, or fixes, apply only the minimum necessary changes within that scope. Existing authorization persists; completing an implementation alone does not authorize an extra cleanup task.
 
 Start scope collection with `git status --short`. Read `git diff` and `git diff --cached` for tracked files; use `git diff HEAD` when all tracked changes must be covered. For untracked files, use `git ls-files --others --exclude-standard`, then read only candidates within the user's scope or recent editing context. If the user supplies a path, patch, or diff, use that scope.
 
@@ -51,7 +46,7 @@ Combine and deduplicate findings from all three dimensions before acting.
 
 In review mode, list issues by severity with file, line, reason, and recommended fix. Do not edit files.
 
-In cleanup mode, apply low-risk, clearly scoped fixes directly. Keep the diff minimal, avoid unrelated refactoring, and never delete files or revert the user's changes. Skip false positives, fixes whose cost exceeds their benefit, and changes that reduce readability; mention skipped items in the result.
+In cleanup mode, apply low-risk, clearly scoped fixes directly. Keep the diff minimal and preserve unrelated user changes. Delete an in-scope file only after confirming it is redundant and excluding runtime, configuration, generated, and public-API consumers; otherwise report it as a candidate. Skip false positives, fixes whose cost exceeds their benefit, and changes that reduce readability; mention skipped items in the result.
 
 ## 4. Verify
 
