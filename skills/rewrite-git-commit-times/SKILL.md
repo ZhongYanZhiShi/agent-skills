@@ -97,19 +97,22 @@ weekdays, and the sets cannot overlap.
 ## Dry Run and Apply
 
 Inspect repository instructions, status, refs, worktrees, signatures, and the
-selected count. The script accepts only linear source history; do not flatten
-merges without a separate explicit request.
+selected count. The script accepts only linear source history with standard tree,
+parent, identity, date, and optional signature headers. Dry runs and apply runs
+reject unsupported headers, including `encoding`, before rebuilding objects.
+Source and target must resolve to different refs, including symbolic aliases.
+Do not flatten merges without a separate explicit request.
 
 ```bash
-python3 scripts/rewrite_commit_times.py --self-test
+python3 <skill-directory>/scripts/rewrite_commit_times.py --self-test
 
-python3 scripts/rewrite_commit_times.py \
+python3 <skill-directory>/scripts/rewrite_commit_times.py \
   --repo <repo> \
   --source <linear-source-ref> \
   --target <existing-target-branch> \
   --rules <rules.json>
 
-python3 scripts/rewrite_commit_times.py \
+python3 <skill-directory>/scripts/rewrite_commit_times.py \
   --repo <repo> \
   --source <linear-source-ref> \
   --target <existing-target-branch> \
@@ -120,8 +123,9 @@ python3 scripts/rewrite_commit_times.py \
 The default run is a dry run. Before `--apply`, show the resolved timezone,
 scope, author policy, work windows, calendar sources, selected count, changed
 count, target, and signature loss. Obtain fresh confirmation for a public or
-shared repository, signature loss, source-ref replacement, or any remote
-publication. Never force-push or skip hooks automatically.
+shared repository, signature loss, or any remote publication. Source-ref
+replacement requires a separate workflow; this script always preserves it.
+Never force-push or skip hooks automatically.
 
 `--apply` rebuilds a linear chain, writes a source/result TSV mapping to the
 system temporary directory, verifies it, and atomically updates the target ref.

@@ -7,6 +7,7 @@ import hashlib
 import json
 import os
 import subprocess
+import sys
 import tempfile
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
@@ -231,6 +232,22 @@ def load_rules(path: Path) -> Rules:
 def parse_commit(repo: Path, oid: str) -> Commit:
     raw = run_git(repo, ["cat-file", "commit", oid])
     header, message = raw.split(b"\n\n", 1)
+    header_names = {
+        line.split(b" ", 1)[0]
+        for line in header.splitlines()
+        if not line.startswith(b" ")
+    }
+    unsupported = header_names - {
+        b"tree", b"parent", b"author", b"committer", b"gpgsig"
+    }
+    if unsupported:
+        names = ", ".join(
+            name.decode("ascii", "backslashreplace") for name in sorted(unsupported)
+        )
+        raise ValueError(
+            f"unsupported commit headers in {oid}: {names}; branches unchanged. "
+            "Use a workflow that preserves these headers."
+        )
     fields = (
         run_git(
             repo,
@@ -269,7 +286,7 @@ def parse_commit(repo: Path, oid: str) -> Commit:
         committer_email=committer_email,
         committer_date=datetime.fromisoformat(committer_date),
         message=message,
-        signed=b"\ngpgsig " in b"\n" + header,
+        signed=b"gpgsig" in header_names,
     )
 
 
@@ -304,7 +321,12 @@ def checked_out_refs(repo: Path) -> set[str]:
 def normalize_target(repo: Path, target: str) -> str:
     name = target.removeprefix("refs/heads/")
     run_git(repo, ["check-ref-format", "--branch", name])
-    return f"refs/heads/{name}"
+    ref = run_git(
+        repo, ["rev-parse", "--verify", "--symbolic-full-name", f"refs/heads/{name}"]
+    ).decode().strip()
+    if not ref.startswith("refs/heads/"):
+        raise ValueError("target must resolve to an existing local branch")
+    return ref
 
 
 def load_commits(repo: Path, source: str) -> list[Commit]:
@@ -372,16 +394,6 @@ def create_commit(
         and source.committer_date == committer
     ):
         return source.oid
-    if (
-        b"\nencoding "
-        in b"\n"
-        + run_git(repo, ["cat-file", "commit", source.oid]).split(b"\n\n", 1)[0]
-    ):
-        raise ValueError(
-            f"cannot safely rewrite non-UTF-8 commit without preserving "
-            f"encoding header: {source.oid}"
-        )
-
     args = ["commit-tree", source.tree]
     if parent:
         args.extend(["-p", parent])
@@ -458,6 +470,76 @@ def self_test() -> None:
     assert rules.move_forward(
         datetime.fromisoformat("2026-01-05T18:00:00+08:00")
     ) == datetime.fromisoformat("2026-01-06T09:00:00+08:00")
+
+    with tempfile.TemporaryDirectory(prefix="commit-times-test-") as tmp:
+        repo = Path(tmp)
+        env = {key: value for key, value in os.environ.items() if not key.startswith("GIT_")}
+        env |= {"GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull}
+
+        def git(*args: str, input_bytes: bytes | None = None) -> bytes:
+            return subprocess.run(
+                ["git", *args], cwd=repo, env=env, input=input_bytes,
+                capture_output=True, check=True,
+            ).stdout.strip()
+
+        git("init", "-q", "--initial-branch=main", "--template=")
+        tree = git("mktree", input_bytes=b"").decode()
+        header = (
+            f"tree {tree}\n"
+            "author Test <test@example.invalid> 1767571200 +0800\n"
+            "committer Test <test@example.invalid> 1767571200 +0800\n"
+        ).encode()
+        raw = header + b"\nfixture\n"
+        oid = git("hash-object", "-t", "commit", "-w", "--stdin", input_bytes=raw).decode()
+        for branch in ("main", "source", "result"):
+            git("update-ref", f"refs/heads/{branch}", oid)
+        git("symbolic-ref", "refs/heads/alias", "refs/heads/source")
+        rules_path = repo / "rules.json"
+        rules_path.write_text(json.dumps({
+            "timezone": "Asia/Shanghai", "date_scope": "all", "author_emails": ["*"],
+            "work_windows": [{"start": "09:00", "end": "18:00"}],
+        }))
+        command = [sys.executable, str(Path(__file__).resolve()), "--repo", str(repo),
+                   "--rules", str(rules_path), "--map", str(repo / "map.tsv")]
+
+        for source, target in (("source", "source"), ("alias", "source"), ("source", "alias")):
+            result = subprocess.run(
+                [*command, "--source", source, "--target", target, "--apply"],
+                env=env, capture_output=True, text=True,
+            )
+            assert result.returncode != 0 and "source and target" in result.stderr
+            assert git("rev-parse", "source").decode() == oid
+
+        result = subprocess.run(
+            [*command, "--source", "source", "--target", "result", "--apply"],
+            env=env, capture_output=True, text=True,
+        )
+        assert result.returncode == 0, result.stderr
+        assert git("rev-parse", "source").decode() == oid
+        assert git("rev-parse", "main").decode() == oid
+        assert git("show", "-s", "--format=%aI %cI", "result") == (
+            b"2026-01-05T09:00:00+08:00 2026-01-05T09:00:00+08:00"
+        )
+        rewritten = git("cat-file", "commit", "result")
+        assert rewritten != raw.strip()
+        assert [line for line in rewritten.splitlines() if not line.startswith((b"author ", b"committer "))] == [
+            line for line in raw.strip().splitlines() if not line.startswith((b"author ", b"committer "))
+        ]
+
+        for extra in (b"x-review-marker keep-me\n", b"encoding ISO-8859-1\n"):
+            custom = git("hash-object", "-t", "commit", "-w", "--stdin",
+                         input_bytes=header + extra + b"\nfixture\n").decode()
+            git("update-ref", "refs/heads/custom", custom)
+            before = git("rev-parse", "result")
+            objects_before = git("count-objects", "-v")
+            for mode in ([], ["--apply"]):
+                result = subprocess.run(
+                    [*command, "--source", "custom", "--target", "result", *mode],
+                    env=env, capture_output=True, text=True,
+                )
+                assert result.returncode != 0 and "unsupported commit headers" in result.stderr
+                assert git("rev-parse", "result") == before
+                assert git("count-objects", "-v") == objects_before
     print("self-test passed")
 
 
@@ -482,6 +564,14 @@ def main() -> None:
     repo = args.repo.resolve()
     run_git(repo, ["rev-parse", "--git-dir"])
     target_ref = normalize_target(repo, args.target)
+    source_ref = run_git(
+        repo, ["rev-parse", "--verify", "--symbolic-full-name", args.source]
+    ).decode().strip()
+    if source_ref == target_ref:
+        raise ValueError(
+            "source and target resolve to the same ref; branches unchanged. "
+            "Choose a separate target branch."
+        )
     old_target = run_git(repo, ["rev-parse", target_ref]).decode().strip()
     commits = load_commits(repo, args.source)
     rules = load_rules(args.rules)

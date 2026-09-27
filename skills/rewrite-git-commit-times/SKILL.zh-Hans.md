@@ -84,19 +84,21 @@ https://sousuo.www.gov.cn/sousuo/search.shtml?code=17da70961a7&searchWord=%E8%8A
 
 ## Dry-run 与执行
 
-先检查项目说明、状态、引用、worktree、签名和选中提交数。脚本只接受线性源
-历史；没有单独明确要求时，不要自动展开 merge。
+先检查项目说明、状态、引用、worktree、签名和选中提交数。脚本只接受包含标准树、
+父提交、身份、日期和可选签名头的线性源历史。Dry-run 和执行模式都会在重建对象前
+拒绝不支持的提交头，包括 `encoding`。源和目标解析后的真实引用必须不同，符号
+别名也不能绕过此限制。没有单独明确要求时，不要自动展开 merge。
 
 ```bash
-python3 scripts/rewrite_commit_times.py --self-test
+python3 <skill-directory>/scripts/rewrite_commit_times.py --self-test
 
-python3 scripts/rewrite_commit_times.py \
+python3 <skill-directory>/scripts/rewrite_commit_times.py \
   --repo <repo> \
   --source <linear-source-ref> \
   --target <existing-target-branch> \
   --rules <rules.json>
 
-python3 scripts/rewrite_commit_times.py \
+python3 <skill-directory>/scripts/rewrite_commit_times.py \
   --repo <repo> \
   --source <linear-source-ref> \
   --target <existing-target-branch> \
@@ -105,8 +107,9 @@ python3 scripts/rewrite_commit_times.py \
 ```
 
 默认只 dry-run。执行 `--apply` 前展示时区、范围、作者策略、工作时段、日历
-来源、选中数、改动数、目标和签名影响。公开或共享仓库、签名失效、替换源引用
-或发布远端时，必须再次取得明确确认。禁止自动强推或跳过钩子。
+来源、选中数、改动数、目标和签名影响。公开或共享仓库、签名失效或发布远端时，
+必须再次取得明确确认。替换源引用需另用独立流程，本脚本始终保留源引用。
+禁止自动强推或跳过钩子。
 
 `--apply` 重建线性提交链，把源/结果 TSV 映射写入系统临时目录，验证后原子
 更新目标引用。目标分支被任一 worktree 检出时拒绝执行。
