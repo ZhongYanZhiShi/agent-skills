@@ -9,10 +9,12 @@ Apply project-aware shadcn rules without turning one example or fix into a unive
 
 ## Workflow
 
+For review or advice, report findings without editing. For authorized implementation or fixes, apply the scoped change and verify it; reuse existing authorization.
+
 1. Inspect the installed component source and its actual composition. Check the component API and state styles, relevant ancestors, rendered structure, primitive base, and existing project variants, tokens, and utilities. This step is complete when the relevant behavior is explained by the project code rather than an upstream assumption.
 2. Separate required behavior from incidental implementation. State what the component and its container must preserve, including accessibility and interaction behavior, before choosing a change.
-3. Choose the smallest scoped change that satisfies those requirements. Prefer existing component APIs, variants, tokens, and composition patterns. Change a shared primitive only when its callers share the requirement; otherwise adapt the local usage.
-4. Verify every affected state in the rendered UI, including keyboard and pointer interaction, invalid and disabled states, target breakpoints, zoom, scrolling, clipping, overlays, and theming where relevant. Reuse existing checks; when non-trivial code changes, leave the smallest runnable check that catches the regression.
+3. For authorized implementation or fixes, choose the smallest scoped change that satisfies those requirements. In review mode, propose a change only when requested or needed to explain a finding. Prefer existing component APIs, variants, tokens, and composition patterns. Change a shared primitive only when its callers share the requirement; otherwise adapt the local usage.
+4. Verify the behavior under review or affected by the change in the rendered UI, including keyboard and pointer interaction, invalid and disabled states, target breakpoints, zoom, scrolling, clipping, overlays, and theming where relevant. Reuse existing checks; when non-trivial code changes, leave the smallest runnable check that catches the regression.
 
 ## Rules
 
