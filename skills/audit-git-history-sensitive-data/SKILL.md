@@ -19,14 +19,18 @@ scope before scanning:
 - Record submodules and Git LFS separately; ordinary object traversal does not
   inspect the content stored in their external object stores.
 
-Inspect without changing state:
+Use commands that return only counts or object IDs for initial visible output:
 
 ```bash
-git status --short --branch
-git rev-parse --show-toplevel
-git log --date=iso-strict --format='%H%x09%aI%x09%an%x09%ae%x09%s' <scope>
-git rev-list --objects <scope>
+git rev-parse --is-inside-work-tree
+git rev-list --count <scope>
 ```
+
+Capture status, paths, commit metadata, messages, blobs, and scanner output inside
+a local process or a restricted temporary file, including stdout and stderr. Detect and redact there before
+returning evidence through any tool output. Raw `git log`, `git show`, object
+listings, and scanner output must not stream into the conversation; even a
+filename or commit subject can contain a sensitive value.
 
 ## Scan the Reachable History
 
@@ -63,7 +67,7 @@ but report both when they match the requested policy.
 
 Never print a full matched value. Redact it and identify the finding with a
 detector name or a one-way digest. Do not place raw findings in the repository,
-shell history, command arguments, or chat output. Store any necessary detailed
+shell history, command arguments, tool output, or chat output. Store any necessary detailed
 artifact under the system temporary directory with restrictive permissions.
 
 ## Report

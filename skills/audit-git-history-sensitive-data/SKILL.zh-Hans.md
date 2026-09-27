@@ -17,14 +17,17 @@ Git 对象。
 - 遵守用户给出的引用、SHA 端点、日期和作者过滤条件；
 - 单独记录 submodule 和 Git LFS；普通 Git 对象遍历不会检查其外部对象库。
 
-只读检查：
+初步可见输出只使用返回数量或对象 ID 的命令：
 
 ```bash
-git status --short --branch
-git rev-parse --show-toplevel
-git log --date=iso-strict --format='%H%x09%aI%x09%an%x09%ae%x09%s' <scope>
-git rev-list --objects <scope>
+git rev-parse --is-inside-work-tree
+git rev-list --count <scope>
 ```
+
+状态、路径、提交元数据、消息、blob 和扫描器结果应先由本地进程捕获，或写入
+权限受限的临时文件，包含标准输出和标准错误，在本地检测并脱敏后才通过工具输出证据。原始 `git log`、
+`git show`、对象清单和扫描器结果不能直接流入对话；文件名和提交标题也可能
+包含敏感值。
 
 ## 扫描可达历史
 
@@ -52,7 +55,7 @@ git rev-list --objects <scope>
 ## 保护敏感输出
 
 禁止输出完整命中值。使用脱敏内容，并以检测器名称或单向摘要标识结果。不要
-把原始命中写入仓库、Shell 历史、命令参数或聊天输出。确需保存详细材料时，
+把原始命中写入仓库、Shell 历史、命令参数、工具输出或聊天输出。确需保存详细材料时，
 写入系统临时目录并限制文件权限。
 
 ## 报告
