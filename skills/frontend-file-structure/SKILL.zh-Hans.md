@@ -40,44 +40,35 @@ src/
 
 ## React 组件目录
 
-简单组件可以保留为单文件。复杂组件使用同名目录，并让目录名、主组件文件名和默认导入语义保持一致：
+简单组件可以保留为单文件。复杂组件让目录表达组件名，局部文件使用最短且无歧义的名称：
 
 ```text
 components/
   FileViewer/
-    FileViewer.tsx
-    index.ts
-    FileViewer.helpers.ts
-    FileViewer.types.ts
-    use-file-viewer.ts
+    index.tsx
+    helpers.ts
+    types.ts
+    hook.ts
 ```
 
-`index.ts` 只暴露组件的公共 API。常见形式是：
+入口文件可直接实现组件；只有真实公共接口边界需要时才增加单独的 barrel。保留项目的命名或默认导出惯例，只暴露预期接口。
 
-```ts
-export { default } from './FileViewer';
-export * from './FileViewer';
-```
-
-如果主文件没有默认导出，不要在 `index.ts` 伪造默认导出。先检查项目偏好：有些代码库统一使用命名导出，有些组件库偏好默认导出。保持一致比套用单一规则更重要。
-
-私有子组件、组件专属 hook、helper、类型和常量放在组件目录内。不要从组件目录外部导入这些私有文件；外部调用者只应经过该目录的公共入口。
+私有子组件、hook、helper、类型和常量就近放置。外部调用者使用公共入口；不支持目录导入时写明文件名。全局可见符号仍保留必要上下文，例如 `FileViewer` 和 `useFileViewer`。
 
 ## Vue 组件目录
 
-简单 Vue 组件可以保留为单个 `.vue` 文件。复杂组件使用同名目录，并让目录名、主组件文件名和外部导入语义保持一致：
+简单 Vue 组件可以保留为单个 `.vue` 文件。项目解析和自动导入规则支持时，复杂组件可使用简短的局部文件名：
 
 ```text
 components/
   FileViewer/
-    FileViewer.vue
-    index.ts
-    FileViewer.helpers.ts
-    FileViewer.types.ts
-    use-file-viewer.ts
+    index.vue
+    helpers.ts
+    types.ts
+    composable.ts
 ```
 
-如果项目已使用 `script setup` 和自动导入组件，不要为了统一形式强行增加 `index.ts`。只有当组件目录需要稳定公共入口，或项目明确通过目录入口导入组件时，才使用 `index.ts`。
+使用显式 `.vue` 导入或现有自动导入约定。框架、工具或既有导入要求组件同名入口时，保留 `FileViewer.vue` 等名称。只有公共入口确实需要时才增加 `index.ts`，不为统一形式而添加。
 
 Vue 的组合式函数按项目约定放在组件目录内或 `composables`。只服务于一个组件的组合式函数留在组件目录内；被多个页面、组件或领域复用时再提升。Pinia store 通常放在 `stores`，但 Nuxt 项目要优先尊重 Nuxt 自动导入和目录约定。
 
@@ -89,7 +80,7 @@ Vue 的组合式函数按项目约定放在组件目录内或 `composables`。�
 
 ## 导入与别名
 
-优先使用项目已经配置的导入风格。若相对路径频繁出现 `../../..`，建议配置或使用现有路径别名，例如 `@/components/Button`、`@/helpers/category.helpers`。
+优先使用项目已经配置的导入风格。若相对路径频繁出现 `../../..`，建议配置或使用现有路径别名，例如 `@/components/Button`、`@/helpers/category`。
 
 同时更新 TypeScript、bundler、test runner 和 lint 配置中的别名解析。不要只改 `tsconfig.json`，否则测试或运行时可能仍然失败。
 
@@ -109,7 +100,7 @@ React Router、Vue Router、Vite、Next.js、Nuxt、Remix 等框架都有自己�
 
 ## 输出要求
 
-给用户建议时，用简洁的中文说明以下内容：
+给用户建议时，用用户的语言简洁说明以下内容：
 
 1. 当前观察：列出已读取的结构事实和主要痛点。
 2. 框架判断：说明项目是 React、Vue 或混合项目，并列出判断依据。

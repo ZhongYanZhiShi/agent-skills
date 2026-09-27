@@ -40,44 +40,35 @@ Do not create empty directories in advance. Create a directory only when matchin
 
 ## React Component Directories
 
-Simple components may remain single files. For complex components, use a same-named directory and align the directory name, main component filename, and default import semantics:
+Simple components may remain single files. For complex components, let the directory carry the component name and use short, unambiguous local filenames:
 
 ```text
 components/
   FileViewer/
-    FileViewer.tsx
-    index.ts
-    FileViewer.helpers.ts
-    FileViewer.types.ts
-    use-file-viewer.ts
+    index.tsx
+    helpers.ts
+    types.ts
+    hook.ts
 ```
 
-Use `index.ts` only to expose the component's public API. A common form is:
+The entry file can implement the component directly; add a separate barrel only when a real public API boundary needs one. Preserve the project's named/default export convention and expose only the intended API.
 
-```ts
-export { default } from './FileViewer';
-export * from './FileViewer';
-```
-
-Do not invent a default export in `index.ts` when the main file has none. Check project preference first: some codebases consistently use named exports, while some component libraries prefer defaults. Consistency matters more than one universal rule.
-
-Keep private subcomponents, component-specific hooks, helpers, types, and constants inside the component directory. External callers should import only through the directory's public entry point.
+Keep private subcomponents, hooks, helpers, types, and constants local. External callers use the public entry, with an explicit filename when directory imports are unsupported. Keep necessary context in globally visible symbols such as `FileViewer` and `useFileViewer`.
 
 ## Vue Component Directories
 
-Simple Vue components may remain single `.vue` files. For complex components, use a same-named directory and align the directory name, main component filename, and external import semantics:
+Simple Vue components may remain single `.vue` files. A complex component can use short local filenames when the project resolver and auto-import rules support them:
 
 ```text
 components/
   FileViewer/
-    FileViewer.vue
-    index.ts
-    FileViewer.helpers.ts
-    FileViewer.types.ts
-    use-file-viewer.ts
+    index.vue
+    helpers.ts
+    types.ts
+    composable.ts
 ```
 
-If the project already uses `script setup` and component auto-imports, do not add `index.ts` merely for uniformity. Use it only when the directory needs a stable public entry point or the project imports components through directory entries.
+Use explicit `.vue` imports or the existing auto-import convention. Preserve a component-named entry such as `FileViewer.vue` when framework, tooling, or established imports require it. Add `index.ts` only when the public entry needs it, not for uniformity.
 
 Place Vue composables inside the component directory or `composables` according to project convention. Keep a composable used by one component local; promote it only after multiple pages, components, or domains reuse it. Pinia stores usually belong in `stores`, but Nuxt auto-import and directory conventions take priority.
 
@@ -89,7 +80,7 @@ Check dependency direction before promotion. Low-level shared modules must not d
 
 ## Imports and Aliases
 
-Prefer the project's configured import style. When relative imports repeatedly contain `../../..`, recommend an existing or new path alias such as `@/components/Button` or `@/helpers/category.helpers`.
+Prefer the project's configured import style. When relative imports repeatedly contain `../../..`, recommend an existing or new path alias such as `@/components/Button` or `@/helpers/category`.
 
 Update alias resolution in TypeScript, the bundler, test runner, and lint configuration together. Updating only `tsconfig.json` may leave tests or runtime resolution broken.
 
