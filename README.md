@@ -31,7 +31,7 @@ skills/
 | `skills/code-simplify` | 审查、精简并清理代码改动，重点关注复用性、可维护性和运行效率。 |
 | `skills/frontend-file-structure` | 规划、评审或重构 React、Vue、Next.js、Nuxt、Vite 等前端项目的文件结构与目录边界。 |
 | `skills/manage-frontend-debug-tools` | 自动识别 React、Vue、Next.js、Nuxt 与工作区，按需求比较 Stars、推荐、安装、更新并验证写入项目的本地调试包；不管理浏览器扩展。 |
-| `skills/post-code-reflection` | 将 AI 生成代码后的审查、对比、改写练习和经验沉淀整理成学习闭环。 |
+| `skills/post-code-reflection` | 按学习或复盘需求解释代码设计、比较方案和总结经验，练习仅在需要时提供。 |
 | `skills/rewrite-git-commit-times` | 默认整理本地时区当天的 Git 提交时间，并在明确日期范围内结合官方节假日缓存与工作时段安全改写。 |
 | `skills/rust-desktop-test-routing` | 按真实运行时表面路由 Rust 桌面（Tauri、Wry、egui、iced、Slint、GPUI）的测试与验收证据，防止把仅浏览器的检查误报为原生桌面验收。 |
 | `skills/shadcn-guidelines` | 积累并应用可扩展的 shadcn 使用规则，根据项目真实实现和上下文处理组件、交互、布局与样式问题。 |
