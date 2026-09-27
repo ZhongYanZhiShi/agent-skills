@@ -1,157 +1,74 @@
 ---
 name: audit-project
-description: Use when reviewing an entire project or codebase, or assessing repository-wide code health, technical debt, dead or deprecated code, performance, UI/UX, refactoring opportunities, and overall quality in React/Next.js, Vue/Nuxt, Node.js, or monorepos. Do not use for a Git diff, one component or file, or a single localized concern.
+description: Use when auditing an entire React/Next.js, Vue/Nuxt, Node.js, or monorepo project for code health, risks, technical debt, performance, or UI/UX. Excludes diff reviews, individual components or files, and single localized concerns.
 ---
 
 # Full Project Audit
 
-## Core Principles
+## Boundaries and References
 
-- Treat the coverage ledger as the source of truth for completion. Never substitute sampling, impressions, or context exhaustion for full coverage.
-- Read-only means no changes to the audited project, persistent user state, or external business state. Temporary evidence and the coverage ledger may be written to the system temporary directory. Do not install or upgrade dependencies or switch, overwrite, revert, or clean the worktree.
-- This skill reports findings only. Do not expand it into repairs; code changes or persistent reports require explicit user authorization.
-- Inspect project scripts and configuration before running them. Execute only commands confirmed to be safe, non-interactive, and directly relevant.
-- Do not read `.env*`, keys, or certificates. Do not inspect, read, or output login state or browser caches by default. With explicit authorization, Playwright may use only `.playwright/user-data` inside the project, and the agent still must not read or disclose its contents directly.
-- Support definitive findings with reproducible evidence. Downgrade weak findings to investigation items or remove them.
-- Distinguish “complete” from “partially complete.” Any pending review or investigation, scan-only unit, blocker, or applicable but unfinished runtime validation means the audit is partially complete.
+- Report findings without repairing code. Preserve the audited project, persistent user state, and external business state; temporary evidence may go in the system temporary directory. Reuse existing authorization for explicitly requested writes.
+- Do not install or upgrade dependencies, switch or clean the worktree, read `.env*`, keys, certificates, login-state files, or browser caches. Authorized browser access follows the UI reference below.
+- Use the [audit matrix](references/audit-matrix.md) for review dimensions and their required evidence. The [report contract](references/report-contract.md) is the sole definition of ledger fields, coverage formulas, finding fields, and completion status. Read both before building the ledger.
+- Load specialist references only for the detected project shape: [React/Next.js](references/framework-react-next.md), [Vue/Nuxt](references/framework-vue-nuxt.md), [standalone Node.js](references/framework-node.md), and [monorepos](references/monorepo.md).
+- For a frontend application, also read [UI runtime review](references/ui-runtime-review.md), unless the user explicitly excludes UI; disclose that scope change.
 
-## Conditional References
+## 1. Freeze the Snapshot
 
-Read these two core contracts first:
+1. Read the user's scope, applicable project instructions, and necessary architecture documentation.
+2. Audit the current filesystem by default, including relevant tracked modifications and untracked files. Honor an explicit ref or directory without switching or overwriting the worktree.
+3. Record time, root, scope, branch, commit, and initial worktree state. For a non-Git project, record root and scope boundaries. Use a snapshot identifier that also accounts for in-scope uncommitted content.
+4. Exclude generated or cached output, package-manager caches, reports, large irrelevant directories, sensitive files, and login-state directories. Ignore SVG unless explicitly in scope. Record each exclusion.
 
-- Use the [audit matrix](references/audit-matrix.md) to assign dimensions and determine whether each is complete.
-- Use the [report contract](references/report-contract.md) to calculate coverage, record findings, and determine run status.
+**Gate:** the snapshot and included/excluded scope are reproducible.
 
-Load specialist references only after detecting the matching project shape:
+## 2. Map the Project and Build the Ledger
 
-- React or Next.js: [React and Next.js reference](references/framework-react-next.md).
-- Vue or Nuxt: [Vue and Nuxt reference](references/framework-vue-nuxt.md).
-- Standalone Node.js backend, service, or package: [Node.js reference](references/framework-node.md).
-- Workspace or multi-package repository: [Monorepo reference](references/monorepo.md).
-- Any frontend application in full scope: [UI runtime review reference](references/ui-runtime-review.md). Skip it only when the user explicitly excludes UI and disclose the scope change.
+1. Map packages, workspaces, frameworks, entry points, routes, server and database boundaries, tests, builds, and deployment configuration.
+2. Inventory production source, shared code, tests, configuration, scripts, schemas, migrations, manifests, lockfiles, code-generation entry points, and architecture documentation as review units.
+3. Record each unit using the report-contract fields. Keep semantic review progress separate from required command/runtime validation; classify candidate findings separately by evidence confidence.
+4. Semantically read source, tests, configuration, and documentation. Full-content deterministic validation may cover machine-generated structured units such as lockfiles. Text search locates evidence but does not complete semantic review.
+5. Keep the ledger in the system temporary directory. Persist elsewhere only when authorized. Split large scopes into exhaustive, non-overlapping batches and update the ledger after each; do not silently sample.
 
-Do not load specialist references unrelated to the current project.
+**Gate:** every workspace and required unit has a scope disposition, applicable dimensions, and a batch.
 
-## Eight-Step Control Flow
+## 3. Run Safe Diagnostics
 
-### 1. Freeze the Snapshot
+1. Identify the existing package manager and project-defined lint, typecheck, test, and build commands.
+2. Inspect each command and its configuration for network use, source or business-data writes, snapshot updates, external services, migrations, and lifecycle hooks.
+3. Run only safe, non-interactive, relevant commands. Commands that create project artifacts, caches, snapshots, browser profiles, or other persistent files need authorization covering those writes. Use existing authorization; otherwise record the blocked validation.
+4. Never connect to production or run migrations, seeds, releases, or commands that may write business data. Start a development server only when it binds locally and cannot load production configuration or reach production services.
+5. Compare worktree state before and after authorized writes. Disclose changed paths without deleting pre-existing content or silently cleaning output.
+6. Record commands, exit status, and reproducible error summaries. Distinguish code failures from environment or missing-dependency failures. For a confirmed timeout or stalled command, stop it and record how to continue.
 
-1. Locate the repository root and read the user scope, repository and path instructions, and necessary project documentation.
-2. Use the current filesystem state by default, including relevant tracked modifications and untracked files. If the user specifies a commit, branch, or directory, audit that scope without switching or overwriting the worktree.
-3. Record audit time, root, scope, current branch, commit, and initial worktree state. For non-Git projects, record the detected root and scope boundaries.
-4. Exclude generated, cached, and large irrelevant directories such as `node_modules`, `dist`, `build`, `.next`, `.nuxt`, `.output`, `coverage`, Playwright reports, test results, and package-manager caches.
-5. Ignore `.svg` unless explicitly in scope. Always exclude sensitive files and login-state directories from file search and semantic review. Playwright may use project login state only with explicit authorization through a persistent context; never inspect those files directly.
+**Gate:** every applicable diagnostic has a recorded result or blocker.
 
-**Completion gate:** record a reproducible snapshot identifier, included scope, exclusions, and initial worktree state.
+## 4. Review the Work Packages
 
-### 2. Build the Project Map and Coverage Ledger
+1. Assign all ten audit dimensions, recording reasons for inapplicable dimensions.
+2. When subagents are available and authorized, group independent read-only work into three or four packages; otherwise use the same boundaries sequentially. Suggested groups: architecture/correctness/data; maintainability/dead code/dependencies; performance/UI/accessibility; tests/builds/observability/security baseline.
+3. Require each package to return review substatuses, required-validation results, candidate findings, evidence locators, and unknowns.
+4. The primary agent maintains the ledger, checks overlap and omissions, validates cross-package claims, and deduplicates findings.
 
-1. Identify package managers, workspaces, applications, packages, frameworks, entry points, routes, server boundaries, tests, build configuration, database boundaries, and deployment configuration.
-2. Create review units for production source, shared libraries, framework entry points, tests, quality gates, configuration, scripts, code-generation entry points, schemas, migrations, routes, pages, APIs, manifests, lockfiles, and architecture documentation.
-3. For each unit, record: scope disposition (`included` or `excluded` with reason); review method (`not started`, `semantic review`, `deterministic tool validation`, or `scan only`); and a `unit × applicable dimension` substatus (`pending`, `complete`, `not applicable`, or `blocked`).
-4. Derive one display status from those facts: excluded units are `excluded`; included units with any blocked dimension are `blocked`; fully closed units become `semantic review complete` or `tool validation complete` based on method and type; scan-only units are `static scan only`; all others are `pending`. Do not maintain another independently editable overall status.
-5. A source, test, configuration, or documentation unit counts as semantically complete only when every applicable dimension is `complete` or has a specific `not applicable` reason. Pending or blocked dimensions never count toward qualified coverage.
-6. Semantically review source, tests, configuration, and documentation. Use full-content deterministic tools only for machine-generated structured units such as lockfiles. Text search is not tool validation, and tool validation cannot replace source-code semantic review.
-7. Record reasons for exclusions and blockers. Store the ledger in the system temporary directory; ask the user before persisting it across tasks.
-8. If one context cannot reliably cover every unit, divide the repository into non-overlapping, exhaustive batches by workspace, domain, or module and update the ledger after each batch. Never sample silently.
+**Gate:** every assigned batch has returned evidence and explicit remaining work.
 
-**Completion gate:** the map covers root configuration and every workspace; each unit has a scope disposition; each included required unit has a method, batch, complete dimension substatuses, and reproducible derived status; no completed unit has an open substatus.
+## 5. Validate the UI
 
-### 3. Run Safe Diagnostics
+For frontend scope, inventory every route and statically review pages, layouts, states, and critical flows. Follow the UI reference for startup safety, browser choice, authorized login state, viewports, interaction checks, and cleanup. Record route-template smoke coverage and core-flow validation separately from source review; keep blocked routes in the ledger.
 
-1. Determine the existing package manager from lockfiles and prefer project-defined lint, typecheck, test, and build commands.
-2. Before running a script, inspect its command and related configuration for network use, source or business-data writes, snapshot updates, external services, database migrations, or lifecycle hooks.
-3. Run only commands confirmed to be safe, non-interactive, directly relevant, and unable to write to the target project, persistent user state, or external business state. Obtain explicit authorization before any command that may create build artifacts, caches, snapshots, browser profiles, or other persistent files; otherwise mark it blocked.
-4. Never install or upgrade dependencies, connect to production, or run migrations, seeds, releases, or scripts that may write business data. Start a development server only after confirming it binds to `localhost` or `127.0.0.1` and cannot load production configuration or connect to production. Project-directory writes still require authorization.
-5. For authorized writes, compare worktree state before and after and disclose changed paths. Do not delete pre-existing content or silently clean generated output.
-6. Classify failures as code, environment, or missing-dependency failures. Record the command, exit status, and reproducible error summary. Provide progress updates as required by the host and stop only after confirmed timeout or lack of progress.
+**Gate:** route inventory, runtime results, and missing evidence are recorded.
 
-**Completion gate:** record either a result or a reason for not running every applicable diagnostic. Unsafe, unauthorized, blocked, missing, or incomplete validation enters the ledger and forces partial completion.
+## 6. Validate and Prioritize Findings
 
-### 4. Assign Work Packages
+1. Support each definitive finding with the report-contract fields. A deterministic, single-file causal chain that excludes reasonable alternatives can be sufficient. Cross-file, runtime, framework-behavior, or quantitative claims need an independent supporting source such as a call chain, configuration, test, browser behavior, measurement, or matching official documentation.
+2. For dead-code claims, exclude convention entry points, auto-imports, dynamic loading, plugins, reflection, generated code, and public consumers. Classify the result as confirmed, high probability, or investigation required.
+3. Preserve useful but inconclusive leads as investigation items with missing evidence and a next check. An investigation item alone does not mean the review is unfinished; any unmet required review or validation remains pending or blocked in the ledger.
+4. Label unmeasured performance and bundle-size benefits as static inference. Verify version-sensitive behavior or migration advice against official documentation matching the project's version, using Context7 when available. Lower confidence when verification is unavailable.
+5. Limit security work to a baseline; route deep audits to a dedicated skill. Do not read secrets or perform offensive validation.
+6. Deduplicate by root cause. Use P0–P3 for defects and risks; rank optimizations and refactors by benefit, confidence, cost, and regression risk. Separate aesthetic preferences from usability/accessibility defects.
 
-1. Use the audit matrix to assign all ten dimensions; record a specific reason for each inapplicable dimension.
-2. When subagents are available, combine independent read-only reviews into three or four packages and execute them in waves. Do not create ten agents mechanically. Without subagents, process the same boundaries sequentially.
-3. Default packages: architecture, correctness, and data boundaries; maintainability, dead code, and dependencies; performance, UI/UX, and accessibility; tests, builds, observability, and security baseline.
-4. Require every package to return `unit × applicable dimension` substatuses, dimension status, candidate findings, evidence locators, and unverified items. Reject vague summaries.
-5. The primary agent owns the coverage ledger, checks overlap and omissions, validates across packages, deduplicates, and decides final status.
+**Gate:** definitive findings satisfy evidence requirements; investigation items disclose uncertainty; every result has a unique ID and action tier.
 
-**Completion gate:** every required unit and applicable dimension has an owner and returned status, with no unassigned scope.
+## 7. Report
 
-### 5. Run UI Validation
-
-1. Apply only to frontend projects. Inventory every route and statically review pages, layouts, state components, and critical flows first.
-2. When the project can run safely, its server listens only locally, and required project writes are authorized, use Playwright's bundled Chromium for smoke validation of accessible routes and deep interaction checks of core flows. Do not use system Chrome.
-3. Default to headless mode, a `1280x720` viewport, and concurrency 1, plus at least one common mobile viewport. Check reachable success, loading, empty, error, and disabled states, keyboard operation, and the basic accessibility tree.
-4. Login state requires explicit authorization to create or update persistent browser data. Use only `.playwright/user-data` under the project root. If `.playwright/` is not ignored, obtain separate authorization before changing `.gitignore`. Without authorization, mark those runtime checks blocked and never use the system browser profile.
-5. Do not take full-page screenshots. Close pages and contexts at the end. Record routes blocked by dynamic parameters, permissions, data, backend availability, or sandbox restrictions.
-
-**Completion gate:** report route inventory, runtime smoke coverage, and core-flow coverage. Static-only UI review, partial runtime validation, or blocked routes force partial completion.
-
-### 6. Validate Findings
-
-1. Complete the report-contract fields for every candidate: evidence locator and type, impact, recommendation, and verification method.
-2. A deterministic, single-file static chain that proves causality and excludes reasonable alternatives can close semantic review; static evidence is not automatically blocked.
-3. Cross-file, runtime, framework-behavior, or quantitative claims that require measurement need a second independent source such as a call chain, configuration, test, build output, browser behavior, or current official documentation. Mark explicitly applicable but unfinished runtime or measurement validation as blocked.
-4. Do not classify convention-based entry points, auto-imports, dynamic imports, plugin registration, reflection, generated code, or public package exports as dead code merely because static references are absent.
-5. Classify dead-code findings as confirmed, high probability, or investigation required. Use confirmed only after excluding conventions, dynamic use, and public APIs. Any retained investigation item is unresolved and forces partial completion.
-6. Label unmeasured performance, bundle-size, and runtime benefits as static inference, never measured improvement.
-7. For versions, deprecated APIs, framework behavior, and migrations, query current official documentation matching the project's version, preferably through Context7. If unavailable, use current official docs. Record source and applicable version; lower confidence when verification is impossible.
-8. Perform only a security baseline. Do not call it a deep security audit, read sensitive files, or conduct offensive validation. Route deep audits to a dedicated security skill.
-
-**Completion gate:** every definitive finding satisfies the common field and evidence requirements. Weak items remain investigation items or are removed. Any retained investigation item limits the audit to partial completion.
-
-### 7. Merge and Prioritize
-
-1. Merge package results by root cause and remove duplicates expressed through different files, dimensions, or symptoms.
-2. Use P0–P3 for defects and risks. Rank optimizations and refactors by benefit, confidence, S/M/L cost, and regression risk.
-3. Separate usability and accessibility defects from aesthetic suggestions; do not present preference as defect.
-4. Assign each result to `fix now`, `low cost / high value`, `planned refactor`, or `defer / investigate`.
-5. Preserve traceability from findings to review units, dimensions, and evidence.
-
-**Completion gate:** every finding has a unique ID with consistent priority, confidence, cost, regression risk, and action tier.
-
-### 8. Report and Determine Completion
-
-1. Return structured Markdown in the conversation by default. Write a report to the target repository only when the user explicitly asks.
-2. Follow the report contract: executive summary; project and workspace map; coverage and blind spots; command results; prioritized findings; action roadmap; residual risks; and unverified items.
-3. State `complete` or `partially complete` at the beginning and keep it consistent with the ledger.
-4. Mark complete only when every required unit qualifies, every applicable dimension and diagnostic or runtime validation is complete, every finding is validated and deduplicated, and every blind spot is disclosed.
-5. Any pending review or investigation, scan-only unit, blocker, environment failure, missing dependency, unfinished command, or incomplete runtime check means partially complete. List remaining batches, blockers, and how to continue.
-6. If the report is too long, return counts, coverage status, and highest-priority summary first, then ask whether to save the full report or continue in batches. Never truncate silently or keep only the top findings.
-7. If there are no validated findings, say “No reportable issues found” while retaining coverage, command, and blind-spot information.
-
-**Completion gate:** fields and counts reconcile, status can be recomputed from the ledger, and static inference, blockers, and security baselines are not overstated as measured completion.
-
-## Handling Blockers
-
-- Missing dependencies: do not install; continue static review, record skipped commands, and mark partially complete.
-- Timed-out or stalled command: stop it, record covered scope and failure class, and provide the continuation command.
-- Browser sandbox restriction: fall back to static UI review plus safe type, test, or build validation and mark partially complete.
-- Partially verifiable monorepo: record each workspace separately; success elsewhere does not make the whole repository complete.
-- Weak evidence: downgrade to investigation or remove the finding. Retained investigation items force partial completion.
-- Lost temporary ledger: regenerate it from the project map; never reconstruct completion from memory.
-
-## Completion Checklist
-
-Declare complete only when every item is true:
-
-- [ ] Snapshot, scope, and initial worktree state are frozen and recorded.
-- [ ] The ledger covers all workspaces, review units, routes, and dimensions.
-- [ ] Every required unit and `unit × applicable dimension` substatus is closed, with no pending, scan-only, or blocked item.
-- [ ] Every applicable dimension is complete and every inapplicable one has a reason.
-- [ ] Every applicable diagnostic and runtime validation is complete and reported, with none skipped for safety, authorization, or environment limitations.
-- [ ] Every candidate finding is validated, deduplicated, and report-contract compliant, with no retained investigation item.
-- [ ] Exclusions, failure classes, blind spots, and worktree state before and after commands are disclosed.
-
-If any item is false, report `partially complete`.
-
-## Common Failures
-
-- Do not treat file inventories, text searches, or static scans as completed semantic review.
-- Do not equate missing static references with dead code, especially for Nuxt convention entry points, dynamic plugins, and public package exports.
-- Do not run tests, builds, migrations, code generation, or other project commands before inspecting their scripts.
-- Do not claim full-repository coverage after sampling or silently drop remaining batches when context is limited.
-- Do not use one successful workspace, one passing command, or static UI inspection as proof of overall completion.
-- Do not describe performance inference as measured gain or a security baseline as a deep security audit.
-- Do not omit evidence type, confidence, cost, regression risk, or verification method, and keep reported counts consistent with actual findings.
+Follow the report contract to derive completion status and present coverage, required validation, and investigation items separately. Default to Markdown in the conversation; persist a report only when requested. Include remaining batches and continuation steps for blockers. If the temporary ledger is lost, regenerate it from the project map rather than inventing completion from memory.
