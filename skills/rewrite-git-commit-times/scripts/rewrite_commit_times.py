@@ -44,8 +44,14 @@ class Rules:
     windows: tuple[Window, ...]
     scope: DateScope | None
     author_emails: frozenset[str]
+    calendar_years: frozenset[int] | None
 
     def is_workday(self, day: date) -> bool:
+        if self.calendar_years is not None and day.year not in self.calendar_years:
+            raise ValueError(
+                f"holiday calendar missing for year {day.year}; load its official "
+                "schedule, update calendar_years, and re-run dry-run before applying"
+            )
         if day in self.workdays:
             return True
         if day in self.holidays:
@@ -192,9 +198,9 @@ def load_rules(path: Path) -> Rules:
         if current.start < previous.end:
             raise ValueError("work windows must not overlap")
 
+    today = datetime.now(timezone).date()
     raw_scope = payload.get("date_scope")
     if raw_scope is None:
-        today = datetime.now(timezone).date()
         scope = DateScope(today, today)
     elif raw_scope == "all":
         scope = None
@@ -207,6 +213,24 @@ def load_rules(path: Path) -> Rules:
             raise ValueError("date_scope ends before it starts")
     else:
         raise ValueError("date_scope must be 'all' or {start, end}")
+
+    if raw_scope is not None and "calendar_years" not in payload:
+        raise ValueError("explicit date_scope requires calendar_years")
+    raw_years = payload.get("calendar_years")
+    if raw_years is None:
+        if scope != DateScope(today, today):
+            raise ValueError("null calendar_years is only allowed for implicit-today rules")
+        calendar_years = None
+    else:
+        if (
+            not isinstance(raw_years, list)
+            or not raw_years
+            or not all(type(year) is int and 1 <= year <= 9999 for year in raw_years)
+        ):
+            raise ValueError(
+                "calendar_years must be a non-empty list of integer years (1..9999)"
+            )
+        calendar_years = frozenset(raw_years)
 
     raw_authors = payload.get("author_emails")
     if (
@@ -226,6 +250,7 @@ def load_rules(path: Path) -> Rules:
         tuple(windows),
         scope,
         author_emails,
+        calendar_years,
     )
 
 
@@ -330,6 +355,11 @@ def normalize_target(repo: Path, target: str) -> str:
 
 
 def load_commits(repo: Path, source: str) -> list[Commit]:
+    if run_git(repo, ["rev-parse", "--is-shallow-repository"]).strip() == b"true":
+        raise ValueError(
+            "shallow repository is not supported; use complete history before "
+            "rewriting time; objects and branches unchanged"
+        )
     merge_count = int(
         run_git(repo, ["rev-list", "--count", "--merges", source]).strip()
     )
@@ -458,6 +488,7 @@ def self_test() -> None:
         ),
         DateScope(date(2026, 1, 1), date(2026, 1, 31)),
         frozenset({"*"}),
+        frozenset({2026}),
     )
     assert rules.is_allowed(datetime.fromisoformat("2026-01-04T10:00:00+08:00"))
     assert not rules.is_allowed(datetime.fromisoformat("2026-01-01T10:00:00+08:00"))
@@ -495,10 +526,12 @@ def self_test() -> None:
             git("update-ref", f"refs/heads/{branch}", oid)
         git("symbolic-ref", "refs/heads/alias", "refs/heads/source")
         rules_path = repo / "rules.json"
-        rules_path.write_text(json.dumps({
+        rules_payload = {
             "timezone": "Asia/Shanghai", "date_scope": "all", "author_emails": ["*"],
             "work_windows": [{"start": "09:00", "end": "18:00"}],
-        }))
+            "calendar_years": [2026],
+        }
+        rules_path.write_text(json.dumps(rules_payload))
         command = [sys.executable, str(Path(__file__).resolve()), "--repo", str(repo),
                    "--rules", str(rules_path), "--map", str(repo / "map.tsv")]
 
@@ -540,6 +573,118 @@ def self_test() -> None:
                 assert result.returncode != 0 and "unsupported commit headers" in result.stderr
                 assert git("rev-parse", "result") == before
                 assert git("count-objects", "-v") == objects_before
+
+        today = datetime.now(rules.timezone).date()
+        yesterday = (today - timedelta(days=1)).isoformat()
+        invalid_payloads = [
+            {key: value for key, value in rules_payload.items() if key != "calendar_years"},
+            rules_payload | {"calendar_years": None, "date_scope": {"start": yesterday, "end": yesterday}},
+        ]
+        invalid_payloads.extend(
+            rules_payload | {"calendar_years": years}
+            for years in (None, [], "2026", [True], [0], [10000], ["2026"], [2026.0])
+        )
+        for payload in invalid_payloads:
+            rules_path.write_text(json.dumps(payload))
+            try:
+                load_rules(rules_path)
+            except ValueError as error:
+                assert "calendar_years" in str(error), error
+            else:
+                raise AssertionError(f"invalid calendar coverage accepted: {payload}")
+
+        implicit_today = {
+            key: value for key, value in rules_payload.items()
+            if key not in {"date_scope", "calendar_years"}
+        }
+        for payload in (
+            implicit_today,
+            implicit_today | {
+                "date_scope": {"start": today.isoformat(), "end": today.isoformat()},
+                "calendar_years": None,
+            },
+        ):
+            rules_path.write_text(json.dumps(payload))
+            loaded = load_rules(rules_path)
+            assert loaded.scope == DateScope(today, today)
+            assert loaded.calendar_years is None
+
+        # Synthetic calendars exercise author and committer coverage independently.
+        for author_time, committer_time, missing_year, expected_dates in (
+            ("2026-12-31T18:30:00+08:00", "2026-12-31T10:00:00+08:00", 2027,
+             b"2027-01-04T09:00:00+08:00 2026-12-31T10:00:00+08:00"),
+            ("2026-12-31T10:00:00+08:00", "2026-12-31T18:30:00+08:00", 2027,
+             b"2026-12-31T10:00:00+08:00 2027-01-04T09:00:00+08:00"),
+            ("2025-12-31T10:00:00+08:00", "2026-12-31T10:00:00+08:00", 2025,
+             b"2025-12-31T10:00:00+08:00 2026-12-31T10:00:00+08:00"),
+        ):
+            author_stamp = int(datetime.fromisoformat(author_time).timestamp())
+            committer_stamp = int(datetime.fromisoformat(committer_time).timestamp())
+            calendar_raw = (
+                f"tree {tree}\n"
+                f"author Test <test@example.invalid> {author_stamp} +0800\n"
+                f"committer Test <test@example.invalid> {committer_stamp} +0800\n"
+                "\ncalendar fixture\n"
+            ).encode()
+            calendar_oid = git("hash-object", "-t", "commit", "-w", "--stdin",
+                               input_bytes=calendar_raw).decode()
+            git("update-ref", "refs/heads/calendar", calendar_oid)
+            calendar_command = [*command, "--source", "calendar", "--target", "result"]
+            rules_path.write_text(json.dumps(rules_payload))
+            refs_before = git("show-ref")
+            objects_before = git("count-objects", "-v")
+            map_before = (repo / "map.tsv").read_bytes()
+            for mode in ([], ["--apply"]):
+                result = subprocess.run(calendar_command + mode, env=env, capture_output=True, text=True)
+                assert result.returncode != 0, result.stdout
+                assert f"holiday calendar missing for year {missing_year}" in result.stderr, result.stderr
+                assert git("show-ref") == refs_before
+                assert git("count-objects", "-v") == objects_before
+                assert (repo / "map.tsv").read_bytes() == map_before
+
+            rules_path.write_text(json.dumps(rules_payload | {
+                "calendar_years": [2025, 2026, 2027], "holidays": ["2027-01-01"],
+            }))
+            for mode in ([], ["--apply"]):
+                result = subprocess.run(calendar_command + mode, env=env, capture_output=True, text=True)
+                assert result.returncode == 0, result.stderr
+                assert json.loads(result.stdout)["calendar_years"] == [2025, 2026, 2027]
+                if not mode:
+                    assert git("show-ref") == refs_before
+                    assert git("count-objects", "-v") == objects_before
+                    assert (repo / "map.tsv").read_bytes() == map_before
+            assert git("show", "-s", "--format=%aI %cI", "result") == expected_dates
+            assert git("rev-parse", "calendar").decode() == calendar_oid
+
+        child_raw = header.replace(
+            f"tree {tree}\n".encode(), f"tree {tree}\nparent {oid}\n".encode(), 1
+        ) + b"\nshallow fixture\n"
+        child = git("hash-object", "-t", "commit", "-w", "--stdin", input_bytes=child_raw).decode()
+        git("update-ref", "refs/heads/history", child)
+        result = subprocess.run(
+            [*command, "--source", "history", "--target", "result", "--apply"],
+            env=env, capture_output=True, text=True,
+        )
+        assert result.returncode == 0, result.stderr
+        assert git("rev-list", "--count", "result") == b"2"
+        assert git("rev-parse", "history").decode() == child
+        shallow = repo / "shallow"
+        git("clone", "--quiet", "--depth=1", "--branch=history", repo.as_uri(), str(shallow))
+        assert git("-C", str(shallow), "rev-parse", "--is-shallow-repository") == b"true"
+        assert b"parent " in git("-C", str(shallow), "cat-file", "commit", "history")
+        git("-C", str(shallow), "branch", "result")
+        shallow_map = repo / "shallow-map.tsv"
+        shallow_command = [sys.executable, str(Path(__file__).resolve()),
+                           "--repo", str(shallow), "--source", "history", "--target", "result",
+                           "--rules", str(rules_path), "--map", str(shallow_map)]
+        refs_before = git("-C", str(shallow), "show-ref")
+        objects_before = git("-C", str(shallow), "count-objects", "-v")
+        for mode in ([], ["--apply"]):
+            result = subprocess.run(shallow_command + mode, env=env, capture_output=True, text=True)
+            assert result.returncode != 0 and "shallow repository" in result.stderr, result.stderr
+            assert git("-C", str(shallow), "show-ref") == refs_before
+            assert git("-C", str(shallow), "count-objects", "-v") == objects_before
+            assert not shallow_map.exists()
     print("self-test passed")
 
 
@@ -590,6 +735,9 @@ def main() -> None:
         "commits": len(commits),
         "selected_commits": selected,
         "date_scope": rules.describe_scope(),
+        "calendar_years": (
+            sorted(rules.calendar_years) if rules.calendar_years is not None else None
+        ),
         "changed_author_dates": changed_author,
         "changed_committer_dates": changed_committer,
         "signatures_invalidated": signature_loss,

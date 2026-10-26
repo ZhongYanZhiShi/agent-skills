@@ -36,8 +36,8 @@ explicit date, date range, or `all` scope:
 1. Resolve the holiday jurisdiction separately from timezone. Use the user's
    stated jurisdiction; otherwise use the computer locale only when
    unambiguous, and ask before writing if it is ambiguous.
-2. Determine every year covered by the selected commits. For `all`, inspect the
-   matching commits first.
+2. Determine every year covered by the selected commits' author and committer
+   dates in the resolved timezone. For `all`, inspect the matching commits first.
 3. For each required year, check the system temporary directory for
    `<country>_holiday_schedule_<YYYY>.md`, using a lowercase country slug; for
    example, `china_holiday_schedule_2026.md`.
@@ -46,6 +46,11 @@ explicit date, date range, or `all` scope:
 5. If the file is absent or empty, its calendar data is unusable, or the user
    asks to search again, query official sources. A refresh bypasses cached data
    and replaces the cache only after successful validation.
+6. Run dry-run with the verified `calendar_years`. Scheduling checks every date
+   it visits, including dates reached by forward adjustment. If a year is
+   missing, load that year's schedule, extend the rules, and repeat dry-run.
+   Stop if the required official schedule is unavailable; do not apply an
+   incomplete calendar.
 
 Only when the holiday jurisdiction is mainland China (`china`), search the
 State Council results by incrementing `pageNo`:
@@ -76,6 +81,7 @@ Write the JSON file under the system temporary directory:
     "end": "2026-07-31"
   },
   "author_emails": ["developer@example.com"],
+  "calendar_years": [2026],
   "work_windows": [
     {"start": "09:00", "end": "12:00"},
     {"start": "14:00", "end": "18:00"}
@@ -94,11 +100,21 @@ Date ranges are inclusive. Work windows are half-open, ordered, non-overlapping,
 and cannot cross midnight. `workdays` overrides weekends; `holidays` overrides
 weekdays, and the sets cannot overlap.
 
+For an explicit date scope, `calendar_years` must list the years whose complete
+official holiday and makeup-workday data has been loaded, even when a year has
+no exceptions. The JSON above illustrates structure, not a complete calendar.
+Existing explicit-scope rules without this field are rejected. Only for the
+implicit-today default may it be omitted when `date_scope` is omitted, or set
+to `null` with the materialized today scope. The script rejects `null` for any
+other scope, including a materialized date that is no longer today.
+
 ## Dry Run and Apply
 
 Inspect repository instructions, status, refs, worktrees, signatures, and the
-selected count. The script accepts only linear source history with standard tree,
-parent, identity, date, and optional signature headers. Dry runs and apply runs
+selected count. Dry runs and apply runs reject shallow repositories before
+rebuilding objects or updating refs; use complete history and do not fetch or
+deepen history automatically. The script accepts only linear source history
+with standard tree, parent, identity, date, and optional signature headers. Dry runs and apply runs
 reject unsupported headers, including `encoding`, before rebuilding objects.
 Source and target must resolve to different refs, including symbolic aliases.
 Do not flatten merges without a separate explicit request.
@@ -137,7 +153,9 @@ Verify that:
 
 - only commits selected by original committer date and author policy receive
   new dates;
-- selected author and committer dates land on workdays inside a work window;
+- selected author and committer dates land on workdays inside a work window,
+  with calendar coverage for every year visited unless using the implicit-today
+  exemption;
 - commit count, trees, messages, names, and emails remain identical;
 - the source ref, worktree, unrelated files, and remotes remain unchanged;
 - the target has no missing objects.
