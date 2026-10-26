@@ -16,13 +16,19 @@ scope before scanning:
 - Default to commits reachable from `HEAD`.
 - Use `--all` only when the user requests all local refs.
 - Honor explicit refs, SHA endpoints, dates, and author filters.
+- Detect shallow history before scanning. A shallow boundary hides older
+  ancestors and their deleted files. Continue auditing the available local
+  fragment, but report history coverage as incomplete. Do not fetch or deepen
+  history automatically.
 - Record submodules and Git LFS separately; ordinary object traversal does not
   inspect the content stored in their external object stores.
 
-Use commands that return only counts or object IDs for initial visible output:
+Use commands that return only booleans, counts, or object IDs for initial
+visible output:
 
 ```bash
 git rev-parse --is-inside-work-tree
+git rev-parse --is-shallow-repository
 git rev-list --count <scope>
 ```
 
@@ -74,7 +80,7 @@ artifact under the system temporary directory with restrictive permissions.
 
 Report:
 
-- exact scope, refs, commit count, and surfaces scanned;
+- exact scope, refs, commit count, surfaces scanned, and shallow-history status;
 - severity and confidence;
 - first reachable commit, abbreviated object ID, path, and line when available;
 - category and redacted evidence;
@@ -82,5 +88,7 @@ Report:
 - scanner limitations and uninspected external stores.
 
 Return zero findings only after checking commit metadata, paths, and reachable
-blob content. Recommend remediation separately; perform it only when the user
-explicitly asks to rewrite history.
+blob content. For a shallow repository, explicitly limit zero findings to the
+available local fragment and mark older history as uninspected; never describe
+it as a complete-history audit. Recommend remediation separately; perform it
+only when the user explicitly asks to rewrite history.
