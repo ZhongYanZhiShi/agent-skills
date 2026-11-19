@@ -38,6 +38,7 @@ maintainer-facing notes that should not be loaded at runtime.
 
 | Skill | Purpose |
 | --- | --- |
+| [`skills/audit-compat-workarounds`](skills/audit-compat-workarounds/SKILL.md) | Audits project-maintained compatibility code, dependency patches, and defect workarounds to identify which are still needed, which are cleanup candidates, and which need more evidence. |
 | `skills/audit-project` | Performs comprehensive read-only reviews of React, Next.js, Vue, Nuxt, Node.js, and monorepo projects, reporting coverage, evidence, prioritized risks, optimizations, and refactoring recommendations. |
 | `skills/audit-git-history-sensitive-data` | Audits Git history for secrets, personal information, local paths, and other sensitive data, reporting only redacted evidence. |
 | `skills/commit-message` | Generates Conventional Commit messages according to project conventions and history, and runs local `git commit` only when explicitly requested; defaults to Simplified Chinese when the language cannot be determined. |

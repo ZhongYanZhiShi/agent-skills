@@ -25,6 +25,7 @@ skills/
 
 | 技能 | 用途 |
 | --- | --- |
+| [`skills/audit-compat-workarounds`](skills/audit-compat-workarounds/SKILL.zh-Hans.md) | 只读盘点项目维护的兼容代码、依赖补丁和缺陷绕行，说明哪些应保留、哪些可考虑清理、哪些仍待确认。 |
 | `skills/audit-project` | 面向 React、Next.js、Vue、Nuxt、Node.js 及 Monorepo 执行全量只读审查，输出带覆盖情况、证据和优先级的风险、优化项与重构建议。 |
 | `skills/audit-git-history-sensitive-data` | 只读分析 Git 历史中的密钥、个人信息、本机路径及其他敏感数据，并以脱敏证据报告结果。 |
 | `skills/commit-message` | 根据项目约定和提交历史选择语言生成 Conventional Commit，并在用户明确要求时执行本地 `git commit`；无法判断时默认使用简体中文。 |

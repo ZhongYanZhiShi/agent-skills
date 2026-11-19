@@ -1,0 +1,4 @@
+interface:
+  display_name: "审查兼容补丁"
+  short_description: "只读盘点项目中的历史兼容代码和缺陷绕行，依据实际支持范围判断去留"
+  default_prompt: "使用 $audit-compat-workarounds 检查当前项目的兼容补丁，说明每处的触发条件、是否仍需要以及判断依据。"
