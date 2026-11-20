@@ -77,12 +77,13 @@ Execution:
 
 1. Divide the full diff into atomic groups. If the boundary cannot be determined safely, ask the user.
 2. Stage each group by path or hunk without including unrelated files. When one file contains multiple intents, prefer `git add -p <file>`; if a hunk still mixes intents, use `git add -e` or split the edit instead of forcing one commit.
-3. Before every commit, inspect `git diff --cached --stat` and enough of the staged diff to confirm that the index contains only the current group. After `git add -p` or `git add -e`, inspect both `git diff --cached` and `git diff` to verify the split.
-4. Generate a Conventional Commit using the language rules above.
-5. Use `git diff --cached --quiet` to detect an empty index. Do not create an empty commit unless the user explicitly requests `--allow-empty`.
-6. Use `git commit -m` for a single line. For multiline messages, write a temporary file outside the repository and use `git commit -F <file>`.
-7. After committing, inspect `git log -1 --oneline`.
-8. Report the commit hash, message, and any files still uncommitted.
+3. Read the full staged patch with `git diff --cached` and confirm it contains only the current group. After partial staging, also read `git diff` to check that the staged change works independently of the remaining edits.
+4. Review the current group’s full staged diff. Use a suitable review skill if available, or review the patch directly. Check whether the implementation meets the request and whether it introduces incorrect behavior, security issues, or data loss. Trace affected callers and failure paths as needed, and use focused checks to verify suspected regressions. If the patch introduces a concrete defect, hold the commit and identify the location, trigger, and impact. Fix it when the task authorizes a repair. Whenever the index changes, review the updated patch before committing.
+5. Generate a Conventional Commit using the language rules above.
+6. Use `git diff --cached --quiet` to detect an empty index. Do not create an empty commit unless the user explicitly requests `--allow-empty`.
+7. Use `git commit -m` for a single line. For multiline messages, write a temporary file outside the repository and use `git commit -F <file>`.
+8. After committing, inspect `git log -1 --oneline`.
+9. Report the review outcome, commit hash, message, and any files still uncommitted.
 
 Never use `--no-verify` or push automatically. Store temporary commit-message files outside the repository and remove them after the commit.
 
